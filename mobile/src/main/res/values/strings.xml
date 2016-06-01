@@ -1,0 +1,44 @@
+<resources>
+    <string name="app_name">Actitracker</string>
+    <string name="next">Next</string>
+
+    <!--UsernameActivity-->
+    <string name="invalid_username">Please enter a valid name.</string>
+
+    <!--TaskSelectionActivity-->
+    <string name="task_start">Start Activity</string>
+    <string name="add_task">Add Activity</string>
+    <string-array name="default_tasks">
+        <item>Stand</item>
+        <item>Walk</item>
+        <item>Jog</item>
+    </string-array>
+
+    <!--SensorLogActivity-->
+    <string name="timed_mode">Timed</string>
+    <string name="manual_mode">Manual</string>
+    <string name="log_start">Start</string>
+    <string name="log_stop">Stop</string>
+    <string name="log_time_hint">Enter time to log sensor data.</string>
+
+    <!--preferences.xml-->
+    <string name="pref_samplingRate">Sampling Rate</string>
+    <string-array name="pref_samplingRate_entries">
+        <item>10Hz</item>
+        <item>20Hz</item>
+        <item>25Hz</item>
+        <item>40Hz</item>
+        <item>50Hz</item>
+    </string-array>
+    <string-array name="pref_samplingRate_values">
+        <item>100000</item>
+        <item>50000</item>
+        <item>40000</item>
+        <item>25000</item>
+        <item>20000</item>
+    </string-array>
+    <string name="pref_samplingRate_default">20Hz</string>
+
+    <!--settings_menu.xml-->
+    <string name="settings">Settings</string>
+</resources>
