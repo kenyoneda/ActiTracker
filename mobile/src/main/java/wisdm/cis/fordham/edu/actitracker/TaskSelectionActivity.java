@@ -96,11 +96,6 @@ public class TaskSelectionActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialogInterface, int i) {
                 taskList.add(input.getText().toString());
                 mAdapter.notifyDataSetChanged();
-
-                Intent intent = new Intent(getApplicationContext(), SensorLogActivity.class);
-                intent.putExtra("USERNAME", (getUsername()));
-                intent.putExtra("ACTIVITY_NAME", input.getText().toString());
-                startActivity(intent);
             }
         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
