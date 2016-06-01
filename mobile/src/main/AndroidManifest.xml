@@ -35,6 +35,11 @@
             android:name=".SensorLogActivity"
             android:screenOrientation="portrait" >
         </activity>
+        <activity>
+            android:name=".SensorSetting"
+            android:screenOrientation="portrait">
+        </activity>
+    
 
         <service
             android:name=".PhoneSensorLogService"
