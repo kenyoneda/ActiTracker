@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 public class PhoneSensorLogService extends Service implements SensorEventListener {
     private static final String TAG = "PhoneSensorService";
@@ -35,6 +37,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     private int SAMPLE_RATE;
     private String username;
     private String activityName;
+    private String DateAndTime;
     private int minutes;
     private ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
     private boolean timedMode;
@@ -144,8 +147,23 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         Log.d(TAG, "Writing files. Size of Accel: " + mPhoneAccelerometerRecords.size() +
             "Size of Gyro: " + mPhoneGyroscopeRecords.size());
 
-        File accelFile = new File(getFilesDir(), "accel.txt");
-        File gyroFile = new File(getFilesDir(), "gyro.txt");
+        File directory = new File(getFilesDir() + "/" + username + "/" + activityName + "//");
+
+        boolean dirCheck = directory.mkdirs();
+
+        if (!dirCheck) {
+            Log.d(TAG, "Unable to create directory " + directory.getName());
+        }
+        else {
+            Log.d(TAG, "New directory created " + directory.getName());
+        }
+
+        DateAndTime = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+
+        File accelFile = new File(directory, "accel" + "_" + username + "_" + activityName + "_" + DateAndTime + ".txt");
+        File gyroFile = new File(directory, "gyro" + "_" + username + "_" + activityName + "_" + DateAndTime + ".txt");
+
+        Log.d(TAG, "Accel file name: " + accelFile.getName() + "Gyro file name: " + gyroFile.getName());
 
         try {
             BufferedWriter accelBufferedWriter = new BufferedWriter(new FileWriter(accelFile));
