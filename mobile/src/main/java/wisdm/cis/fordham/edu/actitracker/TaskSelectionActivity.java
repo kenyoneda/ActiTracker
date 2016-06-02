@@ -1,21 +1,21 @@
 package wisdm.cis.fordham.edu.actitracker;
 
-import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.SparseBooleanArray;
+import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -28,7 +28,7 @@ public class TaskSelectionActivity extends AppCompatActivity {
 
     private String username;
     ArrayList<String> taskList = new ArrayList<>();
-    ArrayAdapter<String> mAdapter;
+    ListViewAdapter mAdapter;
     ListView listView;
 
     @Override
@@ -40,7 +40,7 @@ public class TaskSelectionActivity extends AppCompatActivity {
         username = i.getStringExtra("USERNAME");
 
         listView = (ListView) findViewById(R.id.list);
-        mAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, taskList);
+        mAdapter = new ListViewAdapter(this, R.layout.list_item, taskList);
         listView.setAdapter(mAdapter);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -51,6 +51,48 @@ public class TaskSelectionActivity extends AppCompatActivity {
                 intent.putExtra("USERNAME", (getUsername()));
                 intent.putExtra("ACTIVITY_NAME", activity);
                 startActivity(intent);
+            }
+        });
+        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+        listView.setMultiChoiceModeListener(new AbsListView.MultiChoiceModeListener() {
+            @Override
+            public void onItemCheckedStateChanged(ActionMode actionMode, int i, long l, boolean b) {
+                actionMode.setTitle(listView.getCheckedItemCount() + " Selected");
+                mAdapter.toggleSelection(i);
+            }
+
+            @Override
+            public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
+                actionMode.getMenuInflater().inflate(R.menu.context_menu, menu);
+                return true;
+            }
+
+            @Override
+            public boolean onPrepareActionMode(ActionMode actionMode, Menu menu) {
+                return false;
+            }
+
+            @Override
+            public boolean onActionItemClicked(ActionMode actionMode, MenuItem menuItem) {
+                if (menuItem.getItemId() == R.id.delete) {
+                    SparseBooleanArray selected = mAdapter.getSelectedIds();
+
+                    for (int i =  (selected.size() - 1); i >= 0; i--) {
+                        if (selected.valueAt(i)) {
+                            String selectedItem = mAdapter.getItem(selected.keyAt(i));
+                            mAdapter.remove(selectedItem);
+                        }
+                    }
+
+                    actionMode.finish();
+                    selected.clear();
+
+                    return true;
+                } else return false;
+            }
+
+            @Override
+            public void onDestroyActionMode(ActionMode actionMode) {
             }
         });
     }
