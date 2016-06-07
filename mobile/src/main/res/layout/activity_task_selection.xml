@@ -1,19 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context="wisdm.cis.fordham.edu.actitracker.TaskSelectionActivity">
-    
-    <fragment
+
+    <ListView
+        android:id="@+id/list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:choiceMode="singleChoice">
+
+    </ListView>
+
+    <!--<fragment
         android:id="@+id/taskFragment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        class="wisdm.cis.fordham.edu.actitracker.TaskFragment"/>
-</LinearLayout>
+        class="wisdm.cis.fordham.edu.actitracker.TaskFragment"/> -->
+
+
+    <android.support.design.widget.FloatingActionButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_add_black_24dp"
+        android:tint="@android:color/white"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="16dp"
+        android:onClick="addActivity"/>
+</RelativeLayout>
