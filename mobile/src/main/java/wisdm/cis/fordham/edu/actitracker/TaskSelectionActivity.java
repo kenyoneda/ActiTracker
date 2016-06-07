@@ -1,10 +1,12 @@
 package wisdm.cis.fordham.edu.actitracker;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.ActionMode;
 import android.view.Menu;
@@ -16,7 +18,15 @@ import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.Toast;
 
+import com.google.android.gms.gcm.Task;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 /**
@@ -30,6 +40,7 @@ public class TaskSelectionActivity extends AppCompatActivity {
     ArrayList<String> taskList = new ArrayList<>();
     ListViewAdapter mAdapter;
     ListView listView;
+    ArrayList<String> activities;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +53,8 @@ public class TaskSelectionActivity extends AppCompatActivity {
         listView = (ListView) findViewById(R.id.list);
         mAdapter = new ListViewAdapter(this, R.layout.list_item, taskList);
         listView.setAdapter(mAdapter);
+
+        activities = new ArrayList<>();
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -75,14 +88,20 @@ public class TaskSelectionActivity extends AppCompatActivity {
             @Override
             public boolean onActionItemClicked(ActionMode actionMode, MenuItem menuItem) {
                 if (menuItem.getItemId() == R.id.delete) {
+
                     SparseBooleanArray selected = mAdapter.getSelectedIds();
 
                     for (int i =  (selected.size() - 1); i >= 0; i--) {
                         if (selected.valueAt(i)) {
+
                             String selectedItem = mAdapter.getItem(selected.keyAt(i));
+
                             mAdapter.remove(selectedItem);
+                            activities.remove(selectedItem);
+
                         }
                     }
+
 
                     actionMode.finish();
                     selected.clear();
@@ -95,6 +114,8 @@ public class TaskSelectionActivity extends AppCompatActivity {
             public void onDestroyActionMode(ActionMode actionMode) {
             }
         });
+
+        loadActivities();
     }
 
     public String getUsername() {
@@ -138,6 +159,7 @@ public class TaskSelectionActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialogInterface, int i) {
                 taskList.add(input.getText().toString());
                 mAdapter.notifyDataSetChanged();
+                activities.add(input.getText().toString());
             }
         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
@@ -148,5 +170,90 @@ public class TaskSelectionActivity extends AppCompatActivity {
 
         builder.create().show();
 
+
     }
+
+    private void loadActivities()
+    {
+        try
+        {
+            InputStream inputStream = openFileInput(username+"_Activities.txt");
+
+            if ( inputStream != null ) {
+
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String receiveString = "";
+                StringBuilder stringBuilder = new StringBuilder();
+
+                while ((receiveString = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(receiveString);
+                }
+
+                inputStream.close();
+                String[] ret = {};
+
+                if (stringBuilder.length() != 0)
+                    ret = stringBuilder.toString().split(",");
+                for(int i =0; i < ret.length; i++)
+                {
+                    taskList.add(ret[i]);
+                    activities.add(ret[i]);
+
+
+                }
+
+
+                mAdapter.notifyDataSetChanged();
+            }
+
+        }
+        catch(Exception e)
+        {
+            Log.e("","Error opening the activities");
+        }
+
+
+
+    }
+
+    public void saveActivities()
+    {
+        FileOutputStream file;
+
+        try {
+
+            file = openFileOutput(username+"_Activities.txt", Context.MODE_WORLD_WRITEABLE);
+            for(int i = 0; i < activities.size(); i++)
+            {
+                file.write((activities.get(i)+",").getBytes());
+
+            }
+
+            file.close();
+        }
+        catch (Exception e)
+        {
+            Log.e("","Error saving the activities");
+        }
+
+
+        activities.clear();
+    }
+
+    @Override
+    protected  void onRestart()
+    {
+        taskList.clear();
+        super.onRestart();
+        loadActivities();
+    }
+
+    @Override
+    protected  void onStop()
+    {
+        super.onStop();
+        saveActivities();
+    }
+
 }
