@@ -1,8 +1,8 @@
 package wisdm.cis.fordham.edu.actitracker;
 
+import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
-import android.os.Bundle;
 
 public class SettingsActivity extends PreferenceActivity {
 

@@ -1,14 +1,34 @@
 package wisdm.cis.fordham.edu.actitracker;
 
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.RadioButton;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
+import com.google.android.gms.wearable.Wearable;
+
+import org.apache.commons.lang3.BooleanUtils;
+
+import java.math.BigInteger;
+
+/**
+ * Activity to prepare user for data collection.
+ * Two modes:
+ * 1. Timed mode - user enters time in minutes to log data.
+ * 2. Manual mode - user can manually start/stop data logging.
+ *
+ * If watch (Android Wear) is connected, above info is sent to simultaneously log data.
+ */
 public class SensorLogActivity extends AppCompatActivity {
 
     private static final String TAG = "SensorLogActivity";
@@ -18,13 +38,17 @@ public class SensorLogActivity extends AppCompatActivity {
     private EditText mLogTime;
     private String username;
     private String activityName;
-    private boolean timedMode;
-    private int minutes;
+    private boolean timedMode;      // True if timed mode. False if manual mode.
+    private int minutes;            // Data log time in minutes.
+    private int defaultMinutes = 1; // Default minutes if no time entered.
+    private int samplingRate;
+    private GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sensor_log);
+        initializeGoogleApiClient();
 
         mLogStartButton = (Button)findViewById(R.id.log_start_button);
         mLogStopButton = (Button)findViewById(R.id.log_stop_button);
@@ -33,29 +57,135 @@ public class SensorLogActivity extends AppCompatActivity {
         Intent i = getIntent();
         username = i.getStringExtra("USERNAME");
         activityName = i.getStringExtra("ACTIVITY_NAME");
+        samplingRate = getSamplingRate();
 
-        mLogStartButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
-                i.putExtra("USERNAME", username);
-                i.putExtra("ACTIVITY_NAME", activityName);
-                if (timedMode) {
-                    minutes = Integer.parseInt(mLogTime.getText().toString());
-                    i.putExtra("MINUTES", minutes);
-                }
-                i.putExtra("TIMEDMODE", timedMode);
-                startService(i);
-            }
-        });
+        setOnClickListeners();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mGoogleApiClient.connect();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mGoogleApiClient.disconnect();
+    }
+
+    /**
+     * Start button sends settings and user/activity info to phone logging service/watch and becomes
+     * disabled once logging starts.
+     * If in manual mode, stop button sends message to watch to stop logging and stops phone
+     * logging service.
+     */
+    private void setOnClickListeners() {
+        mLogStartButton.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        mLogStartButton.setEnabled(false);
+
+                        Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
+                        if (timedMode) {
+                            // default time if none entered
+                            if (mLogTime.getText().toString().isEmpty()) {
+                                minutes = defaultMinutes;
+                            } else {
+                                minutes = Integer.parseInt(mLogTime.getText().toString());
+                            }
+                            i.putExtra("MINUTES", minutes);
+                        }
+                        i.putExtra("USERNAME", username);
+                        i.putExtra("ACTIVITY_NAME", activityName);
+                        i.putExtra("TIMEDMODE", timedMode);
+                        i.putExtra("SAMPLING_RATE", samplingRate);
+
+                        // Send settings to watch
+                        sendMessage("/settings", samplingRate);
+                        sendMessage("/timedMode", BooleanUtils.toInteger(timedMode));
+
+                        // Start service on phone
+                        startService(i);
+                        // Start service on watch
+                        sendMessage("/start", minutes);
+                    }
+                });
 
         mLogStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                sendMessage("/stop", 0);
+
                 Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
                 stopService(i);
             }
         });
+    }
+
+    private void initializeGoogleApiClient() {
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+                    @Override
+                    public void onConnected(Bundle bundle) {
+                        Log.d(TAG, "onConnected method called");
+                    }
+
+                    @Override
+                    public void onConnectionSuspended(int i) {
+                        Log.d(TAG, "Connection to wearable suspended. Code: " + i);
+                    }
+                })
+                .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
+                    @Override
+                    public void onConnectionFailed(ConnectionResult connectionResult) {
+                        Log.d(TAG, "onConnection failed: " + connectionResult);
+                    }
+                })
+                .addApi(Wearable.API)
+                .build();
+    }
+
+    /**
+     *  Connect to watch and send a message with a given message and setting.
+     */
+    private void sendMessage(final String message, final int setting) {
+        if (mGoogleApiClient.isConnected()){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    NodeApi.GetConnectedNodesResult nodes =
+                            Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
+
+                    for (Node node : nodes.getNodes()) {
+
+                        MessageApi.SendMessageResult result =
+                                Wearable.MessageApi.sendMessage(mGoogleApiClient, node.getId(),
+                                        message, BigInteger.valueOf(setting).toByteArray()).await();
+
+                        Log.d(TAG, "Sent to node: " + node.getId() +
+                                " with display name: " + node.getDisplayName());
+
+                        if (!result.getStatus().isSuccess()) {
+                            Log.e(TAG, "ERROR: failed to send Message: " + result.getStatus());
+                        }
+                        else {
+                            Log.d(TAG, "Message Successfully sent.");
+                        }
+                    }
+                }
+            }).start();
+        }
+        else {
+            Log.e(TAG, "Wearable not connected");
+        }
+    }
+
+    private int getSamplingRate() {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        return Integer.parseInt(sharedPreferences.getString("pref_samplingRate", "0"));
     }
 
     /**
@@ -66,8 +196,6 @@ public class SensorLogActivity extends AppCompatActivity {
      * @param view
      */
     public void onRadioButtonClicked(View view) {
-        boolean checked = ((RadioButton) view).isChecked();
-
         switch (view.getId()) {
             case R.id.radio_timed:
                 timedMode = true;

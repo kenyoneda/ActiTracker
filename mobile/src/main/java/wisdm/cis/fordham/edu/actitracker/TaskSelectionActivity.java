@@ -1,17 +1,19 @@
 package wisdm.cis.fordham.edu.actitracker;
 
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
 /**
- * Activity where user can add/choose task to log sensor data for.
+ * Activity where user can add/choose task to log sensor data for. See TaskFragment to see
+ * implementation of the task list.
  * User can also navigate to settings.
  */
 public class TaskSelectionActivity extends AppCompatActivity {
+
     private static final String TAG = "TaskSelectionActivity";
 
     private String username;
@@ -25,7 +27,8 @@ public class TaskSelectionActivity extends AppCompatActivity {
         username = i.getStringExtra("USERNAME");
     }
 
-    public String getUsername() {
+    // For TaskFragment (list of tasks) to pass username to next activity (SensorLogActivity)
+    protected String getUsername() {
         return username;
     }
 

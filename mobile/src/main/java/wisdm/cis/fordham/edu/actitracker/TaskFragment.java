@@ -11,9 +11,13 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/**
+ * Comment...
+ */
 public class TaskFragment extends ListFragment {
 
     private static final String TAG = "TaskFragment";
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -25,6 +29,14 @@ public class TaskFragment extends ListFragment {
         setListAdapter(adapter);
     }
 
+    /**
+     * On task click, move to SensorLogActivity to prepare user for sensor logging.
+     *
+     * @param l
+     * @param v
+     * @param position
+     * @param id
+     */
     @Override
     public void onListItemClick(ListView l, View v, int position, long id) {
         String activity = getListAdapter().getItem(position).toString();
