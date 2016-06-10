@@ -41,9 +41,11 @@ public class WearSensorLogService extends WearableListenerService implements Sen
     private PowerManager mPowerManager;
     private PowerManager.WakeLock mWakeLock;
     private GoogleApiClient mGoogleApiClient;
+    private String username;
+    private String activityName;
     private boolean timedMode;
-    private long logDelay = 5;
-
+    private long logDelay = 5000;
+    private long phoneToWatchDelay;
 
     public WearSensorLogService() {
     }
@@ -58,9 +60,13 @@ public class WearSensorLogService extends WearableListenerService implements Sen
     public int onStartCommand(Intent intent, int flags, int startId) {
         int minutes = intent.getIntExtra("MINUTES", 0);
         int samplingRate = intent.getIntExtra("SAMPLING_RATE", 0);
+        phoneToWatchDelay = intent.getLongExtra("DELAY", 0);
         timedMode = intent.getBooleanExtra("TIMED_MODE", true);
+        username = intent.getStringExtra("USERNAME");
+        activityName = intent.getStringExtra("ACTIVITY_NAME");
 
-        Log.d(TAG, "Service Started. Sampling Rate: " + samplingRate + ", Minutes: " + minutes);
+        Log.d(TAG, "Service Started. Username: " + username + ", Activity: " + activityName +
+                ", Sampling Rate: " + samplingRate + ", Minutes: " + minutes);
         registerListeners(minutes, samplingRate);
         return START_NOT_STICKY;
     }
@@ -100,10 +106,15 @@ public class WearSensorLogService extends WearableListenerService implements Sen
         // Acquire wake lock to sample with the screen off
         mPowerManager = (PowerManager)getSystemService(Context.POWER_SERVICE);
         mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-        mWakeLock.acquire();
+        // Wake locks are reference counted. See for more details:
+        // http://stackoverflow.com/questions/5920798/wakelock-finalized-while-still-held
+        if (mWakeLock != null && mWakeLock.isHeld()) {
+            mWakeLock.acquire();
+        }
 
-        // Register sensor listener after delay
+        // Register sensor listener after delay. Compensate for comm delay between phone and watch.
         Log.d(TAG, "Before start: " + System.currentTimeMillis());
+        logDelay -= System.currentTimeMillis() - phoneToWatchDelay;
         exec.schedule(new Runnable() {
             @Override
             public void run() {
@@ -114,7 +125,7 @@ public class WearSensorLogService extends WearableListenerService implements Sen
                     scheduleLogStop(minutes);
                 }
             }
-        }, logDelay, TimeUnit.SECONDS);
+        }, logDelay, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -151,6 +162,8 @@ public class WearSensorLogService extends WearableListenerService implements Sen
         PutDataMapRequest dataMap = PutDataMapRequest.create("/data");
         dataMap.getDataMap().putAsset("ACCEL_ASSET", accelAsset);
         dataMap.getDataMap().putAsset("GYRO_ASSET", gyroAsset);
+        dataMap.getDataMap().putString("USERNAME", username);
+        dataMap.getDataMap().putString("ACTIVITY_NAME", activityName);
         PutDataRequest request = dataMap.asPutDataRequest();
         PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
                 .putDataItem(mGoogleApiClient, request);

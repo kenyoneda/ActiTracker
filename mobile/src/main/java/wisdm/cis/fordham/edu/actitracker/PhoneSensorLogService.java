@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class PhoneSensorLogService extends Service implements SensorEventListener {
 
-    private static final String TAG = "PhoneSensorService";
+    private static final String TAG = "PhoneSensorLogService";
 
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
@@ -40,7 +40,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     private String username;
     private String activityName;
     private boolean timedMode;
-    private long logDelay = 5;  // TODO: Incorporate into settings.
+    private long logDelay = 5000;  // TODO: Incorporate into settings.
 
     public PhoneSensorLogService() {
     }
@@ -56,7 +56,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         activityName = intent.getStringExtra("ACTIVITY_NAME");
         int minutes = intent.getIntExtra("MINUTES", 0);
         int samplingRate = intent.getIntExtra("SAMPLING_RATE", 0);
-        timedMode = intent.getBooleanExtra("TIMEDMODE", true);
+        timedMode = intent.getBooleanExtra("TIMED_MODE", true);
 
         Log.d(TAG, "Service Started. Username: " + username + ", Activity: " + activityName +
                 ", Sampling Rate: " + samplingRate + ", Minutes: " + minutes);
@@ -67,6 +67,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
 
     @Override
     public void onDestroy() {
+        super.onDestroy();
         // Write files to disk if manual mode.
         if (!timedMode) {
             mSensorManager.unregisterListener(PhoneSensorLogService.this, mAccelerometer);
@@ -77,7 +78,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         if (mWakeLock.isHeld()) {
             mWakeLock.release();
         }
-        super.onDestroy();
+
     }
 
     /**
@@ -98,7 +99,11 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         // Acquire wake lock to sample with the screen off
         mPowerManager = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
         mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-        mWakeLock.acquire();
+        // Wake locks are reference counted. See for more details:
+        // http://stackoverflow.com/questions/5920798/wakelock-finalized-while-still-held
+        if (mWakeLock != null && mWakeLock.isHeld()) {
+            mWakeLock.acquire();
+        }
 
         // Register sensor listener after delay
         Log.d(TAG, "Before start: " + System.currentTimeMillis());
@@ -112,7 +117,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
                     scheduleLogStop(minutes);
                 }
             }
-        }, logDelay, TimeUnit.SECONDS);
+        }, logDelay, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -134,7 +139,8 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     }
 
     /**
-     * comment
+     * Writes files to internal storage.
+     * Format: /User/Activity/device_sensor_username_activityName_date_time.txt
      */
     private void writeFiles() {
         Log.d(TAG, "Writing phone files. Size of Accel: " + mPhoneAccelerometerRecords.size() +
@@ -153,8 +159,8 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
 
         String dateAndTime = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
 
-        File accelFile = new File(directory, "accel" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
-        File gyroFile = new File(directory, "gyro" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
+        File accelFile = new File(directory, "phone_accel" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
+        File gyroFile = new File(directory, "phone_gyro" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
 
         Log.d(TAG, "Accel file name: " + accelFile.getName() + "Gyro file name: " + gyroFile.getName());
 

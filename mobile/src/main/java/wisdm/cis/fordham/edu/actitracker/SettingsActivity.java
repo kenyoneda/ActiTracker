@@ -7,6 +7,7 @@ import android.preference.PreferenceFragment;
 public class SettingsActivity extends PreferenceActivity {
 
     private static final String TAG = "SettingsActivity";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

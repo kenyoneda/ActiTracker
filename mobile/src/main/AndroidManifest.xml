@@ -39,16 +39,8 @@
             android:name=".SensorLogActivity"
             android:screenOrientation="portrait" >
         </activity>
-        <activity>
-            android:name=".SensorSetting"
-            android:screenOrientation="portrait">
-        </activity>
-    
 
         <service android:name=".PhoneSensorLogService" >
-            <intent-filter>
-                <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />
-            </intent-filter>
         </service>
         <service
             android:name=".PhoneListenerService">

@@ -8,6 +8,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.MessageEvent;
@@ -30,8 +31,12 @@ public class WearListenerService extends WearableListenerService {
     private static final String SETTINGS = "/settings";
     private static final String TIMED_MODE = "/timedMode";
 
+    private int minutes;
     private int samplingRate;
     private boolean timedMode;
+    private long phoneToWatchDelay;
+    private String username;
+    private String activityName;
 
     public WearListenerService() {
     }
@@ -39,7 +44,7 @@ public class WearListenerService extends WearableListenerService {
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
         if (messageEvent.getPath().equals(START_COLLECTION)) {
-            int minutes = new BigInteger(messageEvent.getData()).intValue();
+            minutes = new BigInteger(messageEvent.getData()).intValue();
             Intent i = new Intent(WearListenerService.this, WearSensorLogService.class);
             i.putExtra("MINUTES", minutes);
             i.putExtra("SAMPLING_RATE", samplingRate);
@@ -54,12 +59,36 @@ public class WearListenerService extends WearableListenerService {
 
         if (messageEvent.getPath().equals(SETTINGS)) {
             samplingRate = new BigInteger(messageEvent.getData()).intValue();
-            Log.d(TAG, "settings: " + samplingRate);
         }
 
         if (messageEvent.getPath().equals(TIMED_MODE)) {
             timedMode = BooleanUtils.toBoolean(new BigInteger(messageEvent.getData()).intValue());
-            Log.d(TAG, "timedmode: " + timedMode);
         }
+    }
+
+    @Override
+    public void onDataChanged(DataEventBuffer events) {
+        for (DataEvent event : events) {
+            if (event.getType() == DataEvent.TYPE_CHANGED &&
+                    event.getDataItem().getUri().getPath().equals(SETTINGS)) {
+                DataItem item = event.getDataItem();
+                DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+                minutes = dataMap.getInt("MINUTES");
+                samplingRate = dataMap.getInt("SAMPLING_RATE");
+                timedMode = dataMap.getBoolean("TIMED_MODE");
+                phoneToWatchDelay = dataMap.getLong("TIMESTAMP");
+                username = dataMap.getString("USERNAME");
+                activityName = dataMap.getString("ACTIVITY_NAME");
+            }
+        }
+
+        Intent i = new Intent(WearListenerService.this, WearSensorLogService.class);
+        i.putExtra("MINUTES", minutes);
+        i.putExtra("SAMPLING_RATE", samplingRate);
+        i.putExtra("TIMED_MODE", timedMode);
+        i.putExtra("DELAY", phoneToWatchDelay);
+        i.putExtra("USERNAME", username);
+        i.putExtra("ACTIVITY_NAME", activityName);
+        startService(i);
     }
 }

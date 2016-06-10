@@ -18,7 +18,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 public class PhoneListenerService extends WearableListenerService {
@@ -28,6 +30,11 @@ public class PhoneListenerService extends WearableListenerService {
     public PhoneListenerService() {
     }
 
+    /**
+     * Gets sensor data from watch and unpacks from asset.
+     * Then writes watch files to disk.
+     * @param dataEvents
+     */
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
         Log.d(TAG, "onDataChanged called");
@@ -38,24 +45,40 @@ public class PhoneListenerService extends WearableListenerService {
                 DataMapItem dataMapItem = DataMapItem.fromDataItem(event.getDataItem());
                 Asset watchAccelAsset = dataMapItem.getDataMap().getAsset("ACCEL_ASSET");
                 Asset watchGyroAsset = dataMapItem.getDataMap().getAsset("GYRO_ASSET");
+                String username = dataMapItem.getDataMap().getString("USERNAME");
+                String activityName = dataMapItem.getDataMap().getString("ACTIVITY_NAME");
 
                 ArrayList<ThreeTupleRecord> watchAccelData = loadDataFromAsset(watchAccelAsset);
                 ArrayList<ThreeTupleRecord> watchGyroData = loadDataFromAsset(watchGyroAsset);
 
-                Log.d(TAG, "Size of accel: " + watchAccelData.size() + "Size of gyro: " + watchGyroData.size());
-                Log.d(TAG, "Writing watch files...");
-
-                writeFiles(watchAccelData, watchGyroData);
+                writeFiles(watchAccelData, watchGyroData, username, activityName);
             }
         }
     }
 
-    private void writeFiles(ArrayList<ThreeTupleRecord> watchAccelRecords, ArrayList<ThreeTupleRecord> watchGyroRecords) {
-        Log.d(TAG, "Writing files. Size of Accel: " + watchAccelRecords.size() +
+    private void writeFiles(ArrayList<ThreeTupleRecord> watchAccelRecords,
+                            ArrayList<ThreeTupleRecord> watchGyroRecords,
+                            String username, String activityName) {
+        Log.d(TAG, "Writing watch files. Size of Accel: " + watchAccelRecords.size() +
                 "Size of Gyro: " + watchGyroRecords.size());
 
-        File accelFile = new File(getFilesDir(), "watchAccel.txt");
-        File gyroFile = new File(getFilesDir(), "watchGyro.txt");
+        File directory = new File(getFilesDir() + "/" + username + "/" + activityName + "//");
+
+        boolean dirCheck = directory.mkdirs();
+
+        if (!dirCheck) {
+            Log.d(TAG, "Unable to create directory.");
+        }
+        else {
+            Log.d(TAG, "New directory created." + directory.getAbsolutePath());
+        }
+
+        String dateAndTime = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+
+        File accelFile = new File(directory, "watch_accel" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
+        File gyroFile = new File(directory, "watch_gyro" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
+
+        Log.d(TAG, "Accel file name: " + accelFile.getName() + "Gyro file name: " + gyroFile.getName());
 
         try {
             BufferedWriter accelBufferedWriter = new BufferedWriter(new FileWriter(accelFile));
@@ -81,6 +104,11 @@ public class PhoneListenerService extends WearableListenerService {
         }
     }
 
+    /**
+     * Helper function to unpack ArrayList of records from byte stream.
+     * @param asset
+     * @return
+     */
     private ArrayList<ThreeTupleRecord> loadDataFromAsset(Asset asset) {
         if (asset == null) {
             throw new IllegalArgumentException("Asset must be non-null");

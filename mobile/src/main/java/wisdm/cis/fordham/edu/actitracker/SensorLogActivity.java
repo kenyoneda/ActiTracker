@@ -12,9 +12,14 @@ import android.widget.EditText;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -99,24 +104,22 @@ public class SensorLogActivity extends AppCompatActivity {
                         }
                         i.putExtra("USERNAME", username);
                         i.putExtra("ACTIVITY_NAME", activityName);
-                        i.putExtra("TIMEDMODE", timedMode);
+                        i.putExtra("TIMED_MODE", timedMode);
                         i.putExtra("SAMPLING_RATE", samplingRate);
 
-                        // Send settings to watch
-                        sendMessage("/settings", samplingRate);
-                        sendMessage("/timedMode", BooleanUtils.toInteger(timedMode));
+                        // Send settings and start logging on watch
+                        sendSettingsandStart();
 
                         // Start service on phone
                         startService(i);
-                        // Start service on watch
-                        sendMessage("/start", minutes);
                     }
                 });
 
         mLogStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendMessage("/stop", 0);
+                mLogStopButton.setEnabled(false);
+                sendMessage("/stop");
 
                 Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
                 stopService(i);
@@ -124,8 +127,10 @@ public class SensorLogActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Needed to connect to watch (Android Wear).
+     */
     private void initializeGoogleApiClient() {
-
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
                     @Override
@@ -151,7 +156,7 @@ public class SensorLogActivity extends AppCompatActivity {
     /**
      *  Connect to watch and send a message with a given message and setting.
      */
-    private void sendMessage(final String message, final int setting) {
+    private void sendMessage(final String message) {
         if (mGoogleApiClient.isConnected()){
             new Thread(new Runnable() {
                 @Override
@@ -163,7 +168,7 @@ public class SensorLogActivity extends AppCompatActivity {
 
                         MessageApi.SendMessageResult result =
                                 Wearable.MessageApi.sendMessage(mGoogleApiClient, node.getId(),
-                                        message, BigInteger.valueOf(setting).toByteArray()).await();
+                                        message, message.getBytes()).await();
 
                         Log.d(TAG, "Sent to node: " + node.getId() +
                                 " with display name: " + node.getDisplayName());
@@ -181,6 +186,23 @@ public class SensorLogActivity extends AppCompatActivity {
         else {
             Log.e(TAG, "Wearable not connected");
         }
+    }
+
+    /**
+     * Sends all necessary parameters to watch. Once they are sent, logging service is started
+     * by WearListenerService.
+     */
+    private void sendSettingsandStart() {
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/settings");
+        putDataMapRequest.getDataMap().putInt("MINUTES", minutes);
+        putDataMapRequest.getDataMap().putInt("SAMPLING_RATE", getSamplingRate());
+        putDataMapRequest.getDataMap().putBoolean("TIMED_MODE", timedMode);
+        putDataMapRequest.getDataMap().putString("USERNAME", username);
+        putDataMapRequest.getDataMap().putString("ACTIVITY_NAME", activityName);
+        putDataMapRequest.getDataMap().putLong("TIMESTAMP", System.currentTimeMillis());
+
+        PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
+        Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest);
     }
 
     private int getSamplingRate() {
