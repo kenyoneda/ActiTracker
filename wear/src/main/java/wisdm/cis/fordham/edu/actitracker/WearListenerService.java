@@ -1,24 +1,14 @@
 package wisdm.cis.fordham.edu.actitracker;
 
 import android.content.Intent;
-import android.provider.ContactsContract;
-import android.util.Log;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.MessageEvent;
-import com.google.android.gms.wearable.Wearable;
 import com.google.android.gms.wearable.WearableListenerService;
-
-import org.apache.commons.lang3.BooleanUtils;
-
-import java.math.BigInteger;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Listener for messages from phone.
@@ -43,26 +33,9 @@ public class WearListenerService extends WearableListenerService {
 
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
-        if (messageEvent.getPath().equals(START_COLLECTION)) {
-            minutes = new BigInteger(messageEvent.getData()).intValue();
-            Intent i = new Intent(WearListenerService.this, WearSensorLogService.class);
-            i.putExtra("MINUTES", minutes);
-            i.putExtra("SAMPLING_RATE", samplingRate);
-            i.putExtra("TIMED_MODE", timedMode);
-            startService(i);
-        }
-
         if (messageEvent.getPath().equals(STOP_COLLECTION)) {
             Intent i = new Intent(WearListenerService.this, WearSensorLogService.class);
             stopService(i);
-        }
-
-        if (messageEvent.getPath().equals(SETTINGS)) {
-            samplingRate = new BigInteger(messageEvent.getData()).intValue();
-        }
-
-        if (messageEvent.getPath().equals(TIMED_MODE)) {
-            timedMode = BooleanUtils.toBoolean(new BigInteger(messageEvent.getData()).intValue());
         }
     }
 

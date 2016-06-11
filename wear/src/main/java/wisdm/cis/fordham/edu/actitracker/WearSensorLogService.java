@@ -95,22 +95,8 @@ public class WearSensorLogService extends WearableListenerService implements Sen
      * user to stop service manually via stop button.
      */
     private void registerListeners(final int minutes, final int samplingRate) {
-        // Get the accelerometer and gyroscope if available on device
-        if (mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
-            mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        }
-        if (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null){
-            mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        }
-
-        // Acquire wake lock to sample with the screen off
-        mPowerManager = (PowerManager)getSystemService(Context.POWER_SERVICE);
-        mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-        // Wake locks are reference counted. See for more details:
-        // http://stackoverflow.com/questions/5920798/wakelock-finalized-while-still-held
-        if (mWakeLock != null && mWakeLock.isHeld()) {
-            mWakeLock.acquire();
-        }
+        getSensors();
+        acquireWakeLock();
 
         // Register sensor listener after delay. Compensate for comm delay between phone and watch.
         Log.d(TAG, "Before start: " + System.currentTimeMillis());
@@ -144,6 +130,34 @@ public class WearSensorLogService extends WearableListenerService implements Sen
                 stopSelf();
             }
         }, minutes, TimeUnit.MINUTES);
+    }
+
+    /**
+     * Get the accelerometer and gyroscope if available on device
+     */
+    private void getSensors() {
+
+        if (mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
+            mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        }
+        if (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null){
+            mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        }
+    }
+
+    /**
+     * Acquire wake lock to sample with the screen off.
+     * Wake locks are reference counted. See for more details:
+     * http://stackoverflow.com/questions/5920798/wakelock-finalized-while-still-held
+     */
+    private void acquireWakeLock() {
+        //
+        mPowerManager = (PowerManager)getSystemService(Context.POWER_SERVICE);
+        mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+
+        if (mWakeLock != null && mWakeLock.isHeld()) {
+            mWakeLock.acquire();
+        }
     }
 
     /**

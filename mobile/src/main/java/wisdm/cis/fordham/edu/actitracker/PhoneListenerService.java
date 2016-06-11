@@ -1,5 +1,6 @@
 package wisdm.cis.fordham.edu.actitracker;
 
+import android.hardware.Sensor;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -59,49 +60,11 @@ public class PhoneListenerService extends WearableListenerService {
     private void writeFiles(ArrayList<ThreeTupleRecord> watchAccelRecords,
                             ArrayList<ThreeTupleRecord> watchGyroRecords,
                             String username, String activityName) {
-        Log.d(TAG, "Writing watch files. Size of Accel: " + watchAccelRecords.size() +
-                "Size of Gyro: " + watchGyroRecords.size());
-
-        File directory = new File(getFilesDir() + "/" + username + "/" + activityName + "//");
-
-        boolean dirCheck = directory.mkdirs();
-
-        if (!dirCheck) {
-            Log.d(TAG, "Unable to create directory.");
-        }
-        else {
-            Log.d(TAG, "New directory created." + directory.getAbsolutePath());
-        }
-
-        String dateAndTime = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
-
-        File accelFile = new File(directory, "watch_accel" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
-        File gyroFile = new File(directory, "watch_gyro" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
-
-        Log.d(TAG, "Accel file name: " + accelFile.getName() + "Gyro file name: " + gyroFile.getName());
-
-        try {
-            BufferedWriter accelBufferedWriter = new BufferedWriter(new FileWriter(accelFile));
-            BufferedWriter gyroBufferedWriter = new BufferedWriter(new FileWriter(gyroFile));
-
-            for (ThreeTupleRecord record : watchAccelRecords) {
-                accelBufferedWriter.write(record.toString());
-                accelBufferedWriter.newLine();
-            }
-
-            for (ThreeTupleRecord record : watchGyroRecords) {
-                gyroBufferedWriter.write(record.toString());
-                gyroBufferedWriter.newLine();
-            }
-
-            accelBufferedWriter.close();
-            gyroBufferedWriter.close();
-        }
-
-        catch (IOException e) {
-            e.printStackTrace();
-            Log.e(TAG, "Error writing files!");
-        }
+        File directory = SensorFileSaver.createDirectory(this, username, activityName);
+        File watchAccelFile = SensorFileSaver.createFile(directory, username, activityName, "watch_accel");
+        File watchGyroFile = SensorFileSaver.createFile(directory, username, activityName, "watch_gyro");
+        SensorFileSaver.writeFile(watchAccelFile, watchAccelRecords);
+        SensorFileSaver.writeFile(watchGyroFile, watchGyroRecords);
     }
 
     /**

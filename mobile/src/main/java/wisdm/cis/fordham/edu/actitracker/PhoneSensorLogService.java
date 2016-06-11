@@ -11,13 +11,8 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -89,21 +84,8 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
      */
     private void registerSensorListeners(final int minutes, final int samplingRate){
         // Get the accelerometer and gyroscope if available on device
-        if (mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null){
-            mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        }
-        if (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null){
-            mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        }
-
-        // Acquire wake lock to sample with the screen off
-        mPowerManager = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
-        mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-        // Wake locks are reference counted. See for more details:
-        // http://stackoverflow.com/questions/5920798/wakelock-finalized-while-still-held
-        if (mWakeLock != null && mWakeLock.isHeld()) {
-            mWakeLock.acquire();
-        }
+        getSensors();
+        acquireWakeLock();
 
         // Register sensor listener after delay
         Log.d(TAG, "Before start: " + System.currentTimeMillis());
@@ -139,53 +121,41 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     }
 
     /**
+     * Get the accelerometer and gyroscope if available on device
+     */
+    private void getSensors() {
+        if (mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null){
+            mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        }
+        if (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null){
+            mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        }
+    }
+
+    /**
+     * Acquire wake lock to sample with the screen off
+     * Wake locks are reference counted. See for more details:
+     * http://stackoverflow.com/questions/5920798/wakelock-finalized-while-still-held
+     */
+    private void acquireWakeLock() {
+        mPowerManager = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
+        mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+
+        if (mWakeLock != null && mWakeLock.isHeld()) {
+            mWakeLock.acquire();
+        }
+    }
+
+    /**
      * Writes files to internal storage.
      * Format: /User/Activity/device_sensor_username_activityName_date_time.txt
      */
     private void writeFiles() {
-        Log.d(TAG, "Writing phone files. Size of Accel: " + mPhoneAccelerometerRecords.size() +
-            "Size of Gyro: " + mPhoneGyroscopeRecords.size());
-
-        File directory = new File(getFilesDir() + "/" + username + "/" + activityName + "//");
-
-        boolean dirCheck = directory.mkdirs();
-
-        if (!dirCheck) {
-            Log.d(TAG, "Unable to create directory.");
-        }
-        else {
-            Log.d(TAG, "New directory created." + directory.getAbsolutePath());
-        }
-
-        String dateAndTime = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
-
-        File accelFile = new File(directory, "phone_accel" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
-        File gyroFile = new File(directory, "phone_gyro" + "_" + username + "_" + activityName + "_" + dateAndTime + ".txt");
-
-        Log.d(TAG, "Accel file name: " + accelFile.getName() + "Gyro file name: " + gyroFile.getName());
-
-        try {
-            BufferedWriter accelBufferedWriter = new BufferedWriter(new FileWriter(accelFile));
-            BufferedWriter gyroBufferedWriter = new BufferedWriter(new FileWriter(gyroFile));
-
-            for (ThreeTupleRecord record : mPhoneAccelerometerRecords) {
-                accelBufferedWriter.write(record.toString());
-                accelBufferedWriter.newLine();
-            }
-
-            for (ThreeTupleRecord record : mPhoneGyroscopeRecords) {
-                gyroBufferedWriter.write(record.toString());
-                gyroBufferedWriter.newLine();
-            }
-
-            accelBufferedWriter.close();
-            gyroBufferedWriter.close();
-        }
-
-        catch (IOException e) {
-            e.printStackTrace();
-            Log.e(TAG, "Error writing files!");
-        }
+        File directory = SensorFileSaver.createDirectory(this, username, activityName);
+        File phoneAccelFile = SensorFileSaver.createFile(directory, username, activityName, "phone_accel");
+        File phoneGyroFile = SensorFileSaver.createFile(directory, username, activityName, "phone_gyro");
+        SensorFileSaver.writeFile(phoneAccelFile, mPhoneAccelerometerRecords);
+        SensorFileSaver.writeFile(phoneGyroFile, mPhoneGyroscopeRecords);
     }
 
     @Override
