@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -83,28 +84,30 @@ public class SensorLogActivity extends AppCompatActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        mLogStartButton.setEnabled(false);
 
                         Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
                         if (timedMode) {
-                            // default time if none entered
+                            // prompt user if no time entered
                             if (mLogTime.getText().toString().isEmpty()) {
-                                minutes = defaultMinutes;
+                                Toast.makeText(getApplicationContext(), "Please enter a valid time",
+                                        Toast.LENGTH_SHORT).show();
                             } else {
                                 minutes = Integer.parseInt(mLogTime.getText().toString());
+
+                                mLogStartButton.setEnabled(false);
+                                i.putExtra("USERNAME", username);
+                                i.putExtra("ACTIVITY_NAME", activityName);
+                                i.putExtra("TIMED_MODE", timedMode);
+                                i.putExtra("SAMPLING_RATE", samplingRate);
+                                i.putExtra("MINUTES", minutes);
+
+                                // Send settings and start logging on watch
+                                sendSettingsandStart();
+
+                                // Start service on phone
+                                startService(i);
                             }
-                            i.putExtra("MINUTES", minutes);
                         }
-                        i.putExtra("USERNAME", username);
-                        i.putExtra("ACTIVITY_NAME", activityName);
-                        i.putExtra("TIMED_MODE", timedMode);
-                        i.putExtra("SAMPLING_RATE", samplingRate);
-
-                        // Send settings and start logging on watch
-                        sendSettingsandStart();
-
-                        // Start service on phone
-                        startService(i);
                     }
                 });
 
