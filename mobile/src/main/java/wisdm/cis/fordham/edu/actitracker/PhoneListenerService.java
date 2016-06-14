@@ -1,6 +1,5 @@
 package wisdm.cis.fordham.edu.actitracker;
 
-import android.hardware.Sensor;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -14,14 +13,9 @@ import com.google.android.gms.wearable.WearableListenerService;
 
 import org.apache.commons.lang3.SerializationUtils;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 public class PhoneListenerService extends WearableListenerService {
@@ -60,7 +54,7 @@ public class PhoneListenerService extends WearableListenerService {
     private void writeFiles(ArrayList<ThreeTupleRecord> watchAccelRecords,
                             ArrayList<ThreeTupleRecord> watchGyroRecords,
                             String username, String activityName) {
-        File directory = SensorFileSaver.createDirectory(this, username, activityName);
+        File directory = SensorFileSaver.getDirectory(this, username, activityName);
         File watchAccelFile = SensorFileSaver.createFile(directory, username, activityName, "watch_accel");
         File watchGyroFile = SensorFileSaver.createFile(directory, username, activityName, "watch_gyro");
         SensorFileSaver.writeFile(watchAccelFile, watchAccelRecords);

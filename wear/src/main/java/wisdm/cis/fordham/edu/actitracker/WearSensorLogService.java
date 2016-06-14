@@ -7,6 +7,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.PowerManager;
+import android.os.Vibrator;
 import android.util.Log;
 
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -125,6 +126,11 @@ public class WearSensorLogService extends WearableListenerService implements Sen
                 mSensorManager.unregisterListener(WearSensorLogService.this, mAccelerometer);
                 mSensorManager.unregisterListener(WearSensorLogService.this, mGyroscope);
                 Log.d(TAG, "End: " + System.currentTimeMillis());
+
+                // Notify user that logging is done
+                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                v.vibrate(1000);
+
                 sendData();
                 Log.d(TAG, "About to stop service...");
                 stopSelf();

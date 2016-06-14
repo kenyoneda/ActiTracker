@@ -1,7 +1,5 @@
 package wisdm.cis.fordham.edu.actitracker;
 
-import android.app.Notification;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -11,8 +9,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
+import android.os.Vibrator;
 import android.util.Log;
 
 import java.io.File;
@@ -117,6 +114,11 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
                 mSensorManager.unregisterListener(PhoneSensorLogService.this, mAccelerometer);
                 mSensorManager.unregisterListener(PhoneSensorLogService.this, mGyroscope);
                 Log.d(TAG, "End: " + System.currentTimeMillis());
+
+                // Notify user that logging is done
+                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                v.vibrate(1000);
+
                 writeFiles();
                 Log.d(TAG, "Stopping service.");
                 stopSelf();
@@ -155,7 +157,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
      * Format: /User/Activity/device_sensor_username_activityName_date_time.txt
      */
     private void writeFiles() {
-        File directory = SensorFileSaver.createDirectory(this, username, activityName);
+        File directory = SensorFileSaver.getDirectory(this, username, activityName);
         File phoneAccelFile = SensorFileSaver.createFile(directory, username, activityName, "phone_accel");
         File phoneGyroFile = SensorFileSaver.createFile(directory, username, activityName, "phone_gyro");
         SensorFileSaver.writeFile(phoneAccelFile, mPhoneAccelerometerRecords);

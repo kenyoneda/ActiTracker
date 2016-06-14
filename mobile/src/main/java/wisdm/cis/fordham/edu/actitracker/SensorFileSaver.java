@@ -21,7 +21,7 @@ public final class SensorFileSaver {
     private SensorFileSaver() {}
 
     // Make directory with path /User/Acitivty
-    public static File createDirectory(Context context, String username, String activityName) {
+    public static File getDirectory(Context context, String username, String activityName) {
         File directory = new File(context.getFilesDir() + File.separator + username +
                 File.separator + activityName);
         if (!directory.isDirectory()) {
@@ -38,7 +38,7 @@ public final class SensorFileSaver {
     public static File createFile(File directory, String username, String activityName,
                                   String sensorName){
 
-        String dateAndTime = new SimpleDateFormat("yyyyMMdd_HHmmss")
+        String dateAndTime = new SimpleDateFormat("yyyyMMdd_HHmm")
                 .format(Calendar.getInstance().getTime());
         return new File(directory, sensorName + "_" + username + "_" + activityName + "_" +
                 dateAndTime + ".txt");

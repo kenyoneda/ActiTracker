@@ -7,8 +7,10 @@ import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -19,6 +21,9 @@ import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
+
+import java.io.File;
+import java.util.ArrayList;
 
 /**
  * Activity to prepare user for data collection.
@@ -35,6 +40,7 @@ public class SensorLogActivity extends AppCompatActivity {
     private Button mLogStartButton;
     private Button mLogStopButton;
     private EditText mLogTime;
+    private ListView mFileList;
     private String username;
     private String activityName;
     private boolean timedMode;      // True if timed mode. False if manual mode.
@@ -52,6 +58,7 @@ public class SensorLogActivity extends AppCompatActivity {
         mLogStartButton = (Button)findViewById(R.id.log_start_button);
         mLogStopButton = (Button)findViewById(R.id.log_stop_button);
         mLogTime = (EditText)findViewById(R.id.log_time_minutes);
+        mFileList = (ListView)findViewById(R.id.file_list);
 
         Intent i = getIntent();
         username = i.getStringExtra("USERNAME");
@@ -65,6 +72,7 @@ public class SensorLogActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         mGoogleApiClient.connect();
+        showFileList();
     }
 
     @Override
@@ -86,6 +94,7 @@ public class SensorLogActivity extends AppCompatActivity {
                     public void onClick(View v) {
 
                         Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
+                        // timed mode
                         if (timedMode) {
                             // prompt user if no time entered
                             if (mLogTime.getText().toString().isEmpty()) {
@@ -108,6 +117,20 @@ public class SensorLogActivity extends AppCompatActivity {
                                 startService(i);
                             }
                         }
+                        // manual mode
+                        else {
+                            mLogStartButton.setEnabled(false);
+                            i.putExtra("USERNAME", username);
+                            i.putExtra("ACTIVITY_NAME", activityName);
+                            i.putExtra("TIMED_MODE", timedMode);
+                            i.putExtra("SAMPLING_RATE", samplingRate);
+
+                            // Send settings and start logging on watch
+                            sendSettingsandStart();
+
+                            // Start service on phone
+                            startService(i);
+                        }
                     }
                 });
 
@@ -121,6 +144,27 @@ public class SensorLogActivity extends AppCompatActivity {
                 stopService(i);
             }
         });
+    }
+
+    /**
+     * Show files on disk given username and activity (if they exist).
+     * Useful for multi-day logging.
+     */
+    private void showFileList() {
+        final long minFileSize = 51200L;
+
+        File directory = SensorFileSaver.getDirectory(this, username, activityName);
+        File[] files = directory.listFiles();
+        ArrayList<String> fileList = new ArrayList<String>();
+        for (File file : files) {
+            fileList.add(file.getName());
+            if (file.length() < minFileSize) {
+                fileList.add(getResources().getString(R.string.file_size_warning));
+            }
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                R.layout.file_list, fileList);
+        mFileList.setAdapter(adapter);
     }
 
     /**

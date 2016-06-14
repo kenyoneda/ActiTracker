@@ -20,6 +20,7 @@
     <string name="log_start">Start</string>
     <string name="log_stop">Stop</string>
     <string name="log_time_hint">Enter time in minutes to sample.</string>
+    <string name="file_size_warning">Warning: Above file is less than 50KB!</string>
 
     <!--preferences.xml-->
     <string name="pref_samplingRate">Sampling Rate</string>
