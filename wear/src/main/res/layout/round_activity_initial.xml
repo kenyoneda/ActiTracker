@@ -3,15 +3,14 @@
                 xmlns:tools="http://schemas.android.com/tools"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                tools:context="wisdm.cis.fordham.edu.actitracker.LogTimerActivity"
+                tools:context="wisdm.cis.fordham.edu.actitracker.InitialActivity"
                 tools:deviceIds="wear_round">
 
     <TextView
-        android:id="@+id/seconds"
+        android:id="@+id/text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
-        android:textSize="50dp"
-        />
+        android:text="@string/ready_to_log"/>
 </RelativeLayout>

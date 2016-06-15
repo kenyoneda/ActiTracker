@@ -45,6 +45,7 @@ public class WearSensorLogService extends WearableListenerService implements Sen
     private String username;
     private String activityName;
     private boolean timedMode;
+    private int minutes;
     private long logDelay = 5000;
     private long phoneToWatchDelay;
 
@@ -59,7 +60,7 @@ public class WearSensorLogService extends WearableListenerService implements Sen
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        int minutes = intent.getIntExtra("MINUTES", 0);
+        minutes = intent.getIntExtra("MINUTES", 0);
         int samplingRate = intent.getIntExtra("SAMPLING_RATE", 0);
         phoneToWatchDelay = intent.getLongExtra("DELAY", 0);
         timedMode = intent.getBooleanExtra("TIMED_MODE", true);
@@ -105,6 +106,7 @@ public class WearSensorLogService extends WearableListenerService implements Sen
         exec.schedule(new Runnable() {
             @Override
             public void run() {
+                displayTimer();
                 mSensorManager.registerListener(WearSensorLogService.this, mAccelerometer, samplingRate);
                 mSensorManager.registerListener(WearSensorLogService.this, mGyroscope, samplingRate);
                 Log.d(TAG, "Start: " + System.currentTimeMillis());
@@ -187,6 +189,17 @@ public class WearSensorLogService extends WearableListenerService implements Sen
         PutDataRequest request = dataMap.asPutDataRequest();
         PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
                 .putDataItem(mGoogleApiClient, request);
+    }
+
+    /**
+     * Start UI on watch to display timer (if in timed mode) or stopwatch (if in manual mode)
+     */
+    private void displayTimer() {
+        Log.d(TAG, "displaytimer");
+        Intent i = new Intent(WearSensorLogService.this, LogTimerActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        i.putExtra("MINUTES", minutes);
+        startActivity(i);
     }
 
     @Override

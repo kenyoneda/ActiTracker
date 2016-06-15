@@ -151,16 +151,13 @@ public class SensorLogActivity extends AppCompatActivity {
      * Useful for multi-day logging.
      */
     private void showFileList() {
-        final long minFileSize = 51200L;
-
         File directory = SensorFileSaver.getDirectory(this, username, activityName);
         File[] files = directory.listFiles();
         ArrayList<String> fileList = new ArrayList<String>();
         for (File file : files) {
             fileList.add(file.getName());
-            if (file.length() < minFileSize) {
-                fileList.add(getResources().getString(R.string.file_size_warning));
-            }
+            String size = android.text.format.Formatter.formatShortFileSize(this, file.length());
+            fileList.add(getResources().getString(R.string.file_size) + size);
         }
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 R.layout.file_list, fileList);
