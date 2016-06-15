@@ -146,10 +146,8 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     private void acquireWakeLock() {
         mPowerManager = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
         mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-
-        if (mWakeLock != null && mWakeLock.isHeld()) {
-            mWakeLock.acquire();
-        }
+        mWakeLock.setReferenceCounted(false);
+        mWakeLock.acquire();
     }
 
     /**

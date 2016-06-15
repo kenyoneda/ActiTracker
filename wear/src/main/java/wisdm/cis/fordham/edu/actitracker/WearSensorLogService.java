@@ -159,13 +159,10 @@ public class WearSensorLogService extends WearableListenerService implements Sen
      * http://stackoverflow.com/questions/5920798/wakelock-finalized-while-still-held
      */
     private void acquireWakeLock() {
-        //
-        mPowerManager = (PowerManager)getSystemService(Context.POWER_SERVICE);
+        mPowerManager = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
         mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-
-        if (mWakeLock != null && mWakeLock.isHeld()) {
-            mWakeLock.acquire();
-        }
+        mWakeLock.setReferenceCounted(false);
+        mWakeLock.acquire();
     }
 
     /**
