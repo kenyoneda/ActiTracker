@@ -36,6 +36,16 @@ import java.util.ArrayList;
 public class SensorLogActivity extends AppCompatActivity {
 
     private static final String TAG = "SensorLogActivity";
+    private static final String USERNAME = "USERNAME";
+    private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
+    private static final String TIMED_MODE = "TIMED_MODE";
+    private static final String SAMPLING_RATE = "SAMPLING_RATE";
+    private static final String MINUTES = "MINUTES";
+    private static final String TIMESTAMP = "TIMESTAMP";
+    private static final String STOP = "/stop";
+    private static final String SETTINGS = "/settings";
+    private static final String PREF_SAMPLING_RATE = "pref_samplingRate";
+
 
     private Button mLogStartButton;
     private Button mLogStopButton;
@@ -45,7 +55,6 @@ public class SensorLogActivity extends AppCompatActivity {
     private String activityName;
     private boolean timedMode;      // True if timed mode. False if manual mode.
     private int minutes;            // Data log time in minutes.
-    private int defaultMinutes = 1; // Default minutes if no time entered.
     private int samplingRate;
     private GoogleApiClient mGoogleApiClient;
 
@@ -61,8 +70,8 @@ public class SensorLogActivity extends AppCompatActivity {
         mFileList = (ListView)findViewById(R.id.file_list);
 
         Intent i = getIntent();
-        username = i.getStringExtra("USERNAME");
-        activityName = i.getStringExtra("ACTIVITY_NAME");
+        username = i.getStringExtra(USERNAME);
+        activityName = i.getStringExtra(ACTIVITY_NAME);
         samplingRate = getSamplingRate();
 
         setOnClickListeners();
@@ -98,17 +107,17 @@ public class SensorLogActivity extends AppCompatActivity {
                         if (timedMode) {
                             // prompt user if no time entered
                             if (mLogTime.getText().toString().isEmpty()) {
-                                Toast.makeText(getApplicationContext(), "Please enter a valid time",
+                                Toast.makeText(getApplicationContext(), R.string.invalid_time,
                                         Toast.LENGTH_SHORT).show();
                             } else {
                                 minutes = Integer.parseInt(mLogTime.getText().toString());
 
                                 mLogStartButton.setEnabled(false);
-                                i.putExtra("USERNAME", username);
-                                i.putExtra("ACTIVITY_NAME", activityName);
-                                i.putExtra("TIMED_MODE", timedMode);
-                                i.putExtra("SAMPLING_RATE", samplingRate);
-                                i.putExtra("MINUTES", minutes);
+                                i.putExtra(USERNAME, username);
+                                i.putExtra(ACTIVITY_NAME, activityName);
+                                i.putExtra(TIMED_MODE, timedMode);
+                                i.putExtra(SAMPLING_RATE, samplingRate);
+                                i.putExtra(MINUTES, minutes);
 
                                 // Send settings and start logging on watch
                                 sendSettingsandStart();
@@ -120,10 +129,10 @@ public class SensorLogActivity extends AppCompatActivity {
                         // manual mode
                         else {
                             mLogStartButton.setEnabled(false);
-                            i.putExtra("USERNAME", username);
-                            i.putExtra("ACTIVITY_NAME", activityName);
-                            i.putExtra("TIMED_MODE", timedMode);
-                            i.putExtra("SAMPLING_RATE", samplingRate);
+                            i.putExtra(USERNAME, username);
+                            i.putExtra(ACTIVITY_NAME, activityName);
+                            i.putExtra(TIMED_MODE, timedMode);
+                            i.putExtra(SAMPLING_RATE, samplingRate);
 
                             // Send settings and start logging on watch
                             sendSettingsandStart();
@@ -138,7 +147,7 @@ public class SensorLogActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 mLogStopButton.setEnabled(false);
-                sendMessage("/stop");
+                sendMessage(STOP);
 
                 Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
                 stopService(i);
@@ -230,21 +239,22 @@ public class SensorLogActivity extends AppCompatActivity {
      * by WearListenerService.
      */
     private void sendSettingsandStart() {
-        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/settings");
-        putDataMapRequest.getDataMap().putInt("MINUTES", minutes);
-        putDataMapRequest.getDataMap().putInt("SAMPLING_RATE", getSamplingRate());
-        putDataMapRequest.getDataMap().putBoolean("TIMED_MODE", timedMode);
-        putDataMapRequest.getDataMap().putString("USERNAME", username);
-        putDataMapRequest.getDataMap().putString("ACTIVITY_NAME", activityName);
-        putDataMapRequest.getDataMap().putLong("TIMESTAMP", System.currentTimeMillis());
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(SETTINGS);
+        putDataMapRequest.getDataMap().putInt(MINUTES, minutes);
+        putDataMapRequest.getDataMap().putInt(SAMPLING_RATE, getSamplingRate());
+        putDataMapRequest.getDataMap().putBoolean(TIMED_MODE, timedMode);
+        putDataMapRequest.getDataMap().putString(USERNAME, username);
+        putDataMapRequest.getDataMap().putString(ACTIVITY_NAME, activityName);
+        putDataMapRequest.getDataMap().putLong(TIMESTAMP, System.currentTimeMillis());
 
         PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest);
     }
 
+    // Get sampling rate from preferences (settings page).
     private int getSamplingRate() {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        return Integer.parseInt(sharedPreferences.getString("pref_samplingRate", "0"));
+        return Integer.parseInt(sharedPreferences.getString(PREF_SAMPLING_RATE, "0"));
     }
 
     /**

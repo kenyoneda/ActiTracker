@@ -20,6 +20,7 @@
     <string name="log_start">Start</string>
     <string name="log_stop">Stop</string>
     <string name="log_time_hint">Enter time in minutes to sample.</string>
+    <string name="invalid_time">Please enter a valid time.</string>
     <string name="file_size">File Size: </string>
 
     <!--preferences.xml-->

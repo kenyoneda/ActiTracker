@@ -24,6 +24,13 @@ import java.util.concurrent.TimeUnit;
 public class PhoneSensorLogService extends Service implements SensorEventListener {
 
     private static final String TAG = "PhoneSensorLogService";
+    private static final String MINUTES = "MINUTES";
+    private static final String SAMPLING_RATE = "SAMPLING_RATE";
+    private static final String TIMED_MODE = "TIMED_MODE";
+    private static final String USERNAME = "USERNAME";
+    private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
+    private static final String PHONE_ACCEL = "phone_accel";
+    private static final String PHONE_GYRO = "phone_gyro";
 
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
@@ -43,16 +50,18 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
 
     @Override
     public void onCreate() {
+        super.onCreate();
         mSensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
     }
 
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        username = intent.getStringExtra("USERNAME");
-        activityName = intent.getStringExtra("ACTIVITY_NAME");
-        int minutes = intent.getIntExtra("MINUTES", 0);
-        int samplingRate = intent.getIntExtra("SAMPLING_RATE", 0);
-        timedMode = intent.getBooleanExtra("TIMED_MODE", true);
+        username = intent.getStringExtra(USERNAME);
+        activityName = intent.getStringExtra(ACTIVITY_NAME);
+        int minutes = intent.getIntExtra(MINUTES, 0);
+        int samplingRate = intent.getIntExtra(SAMPLING_RATE, 0);
+        timedMode = intent.getBooleanExtra(TIMED_MODE, true);
 
         Log.d(TAG, "Service Started. Username: " + username + ", Activity: " + activityName +
                 ", Sampling Rate: " + samplingRate + ", Minutes: " + minutes);
@@ -104,7 +113,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     }
 
     /**
-     * Unregister sensor listener after specified minutes
+     * Unregister sensor listener after specified minutes.
      * @param minutes
      */
     private void scheduleLogStop(int minutes) {
@@ -127,7 +136,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     }
 
     /**
-     * Get the accelerometer and gyroscope if available on device
+     * Get the accelerometer and gyroscope if available on device.
      */
     private void getSensors() {
         if (mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null){
@@ -139,9 +148,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     }
 
     /**
-     * Acquire wake lock to sample with the screen off
-     * Wake locks are reference counted. See for more details:
-     * http://stackoverflow.com/questions/5920798/wakelock-finalized-while-still-held
+     * Acquire wake lock to sample with the screen off.
      */
     private void acquireWakeLock() {
         mPowerManager = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
@@ -156,8 +163,8 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
      */
     private void writeFiles() {
         File directory = SensorFileSaver.getDirectory(this, username, activityName);
-        File phoneAccelFile = SensorFileSaver.createFile(directory, username, activityName, "phone_accel");
-        File phoneGyroFile = SensorFileSaver.createFile(directory, username, activityName, "phone_gyro");
+        File phoneAccelFile = SensorFileSaver.createFile(directory, username, activityName, PHONE_ACCEL);
+        File phoneGyroFile = SensorFileSaver.createFile(directory, username, activityName, PHONE_GYRO);
         SensorFileSaver.writeFile(phoneAccelFile, mPhoneAccelerometerRecords);
         SensorFileSaver.writeFile(phoneGyroFile, mPhoneGyroscopeRecords);
     }

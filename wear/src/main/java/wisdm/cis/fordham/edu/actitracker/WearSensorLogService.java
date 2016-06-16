@@ -8,6 +8,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.PowerManager;
 import android.os.Vibrator;
+import android.renderscript.Sampler;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -31,7 +33,17 @@ import java.util.concurrent.TimeUnit;
  */
 public class WearSensorLogService extends WearableListenerService implements SensorEventListener {
 
-    public static final String TAG = "WearSensorLogService";
+    private static final String TAG = "WearSensorLogService";
+    private static final String ACCEL_ASSET = "ACCEL_ASSET";
+    private static final String GYRO_ASSET = "GYRO_ASSET";
+    private static final String USERNAME = "USERNAME";
+    private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
+    private static final String MINUTES = "MINUTES";
+    private static final String SAMPLING_RATE = "SAMPLING_RATE";
+    private static final String TIMED_MODE = "TIMED_MODE";
+    private static final String DELAY = "DELAY";
+    private static final String STOP_STOPWATCH = "stop_stopwatch";
+    private static final String DATA = "/data";
 
     private SensorManager mSensorManager;
     private Sensor mAccelerometer;
@@ -46,7 +58,7 @@ public class WearSensorLogService extends WearableListenerService implements Sen
     private String activityName;
     private boolean timedMode;
     private int minutes;
-    private long logDelay = 5000;
+    private long logDelay = 5000L;
     private long phoneToWatchDelay;
 
     public WearSensorLogService() {
@@ -60,12 +72,12 @@ public class WearSensorLogService extends WearableListenerService implements Sen
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        minutes = intent.getIntExtra("MINUTES", 0);
-        int samplingRate = intent.getIntExtra("SAMPLING_RATE", 0);
-        phoneToWatchDelay = intent.getLongExtra("DELAY", 0);
-        timedMode = intent.getBooleanExtra("TIMED_MODE", true);
-        username = intent.getStringExtra("USERNAME");
-        activityName = intent.getStringExtra("ACTIVITY_NAME");
+        minutes = intent.getIntExtra(MINUTES, 0);
+        int samplingRate = intent.getIntExtra(SAMPLING_RATE, 0);
+        phoneToWatchDelay = intent.getLongExtra(DELAY, 0);
+        timedMode = intent.getBooleanExtra(TIMED_MODE, true);
+        username = intent.getStringExtra(USERNAME);
+        activityName = intent.getStringExtra(ACTIVITY_NAME);
 
         Log.d(TAG, "Service Started. Username: " + username + ", Activity: " + activityName +
                 ", Sampling Rate: " + samplingRate + ", Minutes: " + minutes);
@@ -80,6 +92,7 @@ public class WearSensorLogService extends WearableListenerService implements Sen
             mSensorManager.unregisterListener(WearSensorLogService.this, mAccelerometer);
             mSensorManager.unregisterListener(WearSensorLogService.this, mGyroscope);
             Log.d(TAG, "End: " + System.currentTimeMillis());
+            stopStopwatch();
             sendData();
         }
         if (null != mGoogleApiClient && mGoogleApiClient.isConnected()) {
@@ -103,6 +116,10 @@ public class WearSensorLogService extends WearableListenerService implements Sen
         // Register sensor listener after delay. Compensate for comm delay between phone and watch.
         Log.d(TAG, "Before start: " + System.currentTimeMillis());
         logDelay -= System.currentTimeMillis() - phoneToWatchDelay;
+        if (logDelay < 0L) {
+            logDelay = 0L;
+        }
+
         exec.schedule(new Runnable() {
             @Override
             public void run() {
@@ -155,8 +172,6 @@ public class WearSensorLogService extends WearableListenerService implements Sen
 
     /**
      * Acquire wake lock to sample with the screen off.
-     * Wake locks are reference counted. See for more details:
-     * http://stackoverflow.com/questions/5920798/wakelock-finalized-while-still-held
      */
     private void acquireWakeLock() {
         mPowerManager = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
@@ -178,11 +193,11 @@ public class WearSensorLogService extends WearableListenerService implements Sen
                 .build();
         mGoogleApiClient.connect();
 
-        PutDataMapRequest dataMap = PutDataMapRequest.create("/data");
-        dataMap.getDataMap().putAsset("ACCEL_ASSET", accelAsset);
-        dataMap.getDataMap().putAsset("GYRO_ASSET", gyroAsset);
-        dataMap.getDataMap().putString("USERNAME", username);
-        dataMap.getDataMap().putString("ACTIVITY_NAME", activityName);
+        PutDataMapRequest dataMap = PutDataMapRequest.create(DATA);
+        dataMap.getDataMap().putAsset(ACCEL_ASSET, accelAsset);
+        dataMap.getDataMap().putAsset(GYRO_ASSET, gyroAsset);
+        dataMap.getDataMap().putString(USERNAME, username);
+        dataMap.getDataMap().putString(ACTIVITY_NAME, activityName);
         PutDataRequest request = dataMap.asPutDataRequest();
         PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
                 .putDataItem(mGoogleApiClient, request);
@@ -192,11 +207,24 @@ public class WearSensorLogService extends WearableListenerService implements Sen
      * Start UI on watch to display timer (if in timed mode) or stopwatch (if in manual mode)
      */
     private void displayTimer() {
-        Log.d(TAG, "displaytimer");
-        Intent i = new Intent(WearSensorLogService.this, LogTimerActivity.class);
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        i.putExtra("MINUTES", minutes);
-        startActivity(i);
+        if (timedMode) {
+            Intent i = new Intent(WearSensorLogService.this, LogTimerActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            i.putExtra(MINUTES, minutes);
+            startActivity(i);
+        }
+        else {
+            Intent i = new Intent(WearSensorLogService.this, LogStopwatchActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            i.putExtra(MINUTES, minutes);
+            startActivity(i);
+        }
+    }
+
+    private void stopStopwatch() {
+        LocalBroadcastManager localBroadcastManager =
+                LocalBroadcastManager.getInstance(WearSensorLogService.this);
+        localBroadcastManager.sendBroadcast(new Intent(STOP_STOPWATCH));
     }
 
     @Override

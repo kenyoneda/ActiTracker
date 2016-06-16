@@ -5,4 +5,7 @@
     <string name="wear_error">Error!</string>
     <string name="test_number">59</string>
     <string name="title_activity_initial">InitialActivity</string>
+    <string name="title_activity_log_stopwatch">LogStopwatchActivity</string>
+    <string name="hello_round">Hello Round World!</string>
+    <string name="hello_square">Hello Square World!</string>
 </resources>

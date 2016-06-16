@@ -6,10 +6,8 @@
     android:id="@+id/watch_view_stub"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:keepScreenOn="true"
-    app:rectLayout="@layout/rect_activity_log"
-    app:roundLayout="@layout/round_activity_log"
-    tools:context="wisdm.cis.fordham.edu.actitracker.LogTimerActivity"
-    tools:deviceIds="wear"
-    >
+    app:rectLayout="@layout/rect_activity_log_stopwatch"
+    app:roundLayout="@layout/round_activity_log_stopwatch"
+    tools:context="wisdm.cis.fordham.edu.actitracker.LogStopwatchActivity"
+    tools:deviceIds="wear">
 </android.support.wearable.view.WatchViewStub>

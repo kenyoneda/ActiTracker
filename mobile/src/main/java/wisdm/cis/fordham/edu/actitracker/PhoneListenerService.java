@@ -18,9 +18,20 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Listens for sensor logging data from watch (asset byte stream) and unpacks into
+ * ArrayList so it can be written to a file.
+ */
 public class PhoneListenerService extends WearableListenerService {
 
     private static final String TAG = "PhoneListenerService";
+    private static final String ACCEL_ASSET = "ACCEL_ASSET";
+    private static final String GYRO_ASSET = "GYRO_ASSET";
+    private static final String USERNAME = "USERNAME";
+    private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
+    private static final String DATA = "/data";
+    private static final String WATCH_ACCEL = "watch_accel";
+    private static final String WATCH_GYRO = "watch_gyro";
 
     public PhoneListenerService() {
     }
@@ -36,12 +47,12 @@ public class PhoneListenerService extends WearableListenerService {
 
         for (DataEvent event : dataEvents) {
             if (event.getType() == DataEvent.TYPE_CHANGED &&
-                    event.getDataItem().getUri().getPath().equals("/data")) {
+                    event.getDataItem().getUri().getPath().equals(DATA)) {
                 DataMapItem dataMapItem = DataMapItem.fromDataItem(event.getDataItem());
-                Asset watchAccelAsset = dataMapItem.getDataMap().getAsset("ACCEL_ASSET");
-                Asset watchGyroAsset = dataMapItem.getDataMap().getAsset("GYRO_ASSET");
-                String username = dataMapItem.getDataMap().getString("USERNAME");
-                String activityName = dataMapItem.getDataMap().getString("ACTIVITY_NAME");
+                Asset watchAccelAsset = dataMapItem.getDataMap().getAsset(ACCEL_ASSET);
+                Asset watchGyroAsset = dataMapItem.getDataMap().getAsset(GYRO_ASSET);
+                String username = dataMapItem.getDataMap().getString(USERNAME);
+                String activityName = dataMapItem.getDataMap().getString(ACTIVITY_NAME);
 
                 ArrayList<ThreeTupleRecord> watchAccelData = loadDataFromAsset(watchAccelAsset);
                 ArrayList<ThreeTupleRecord> watchGyroData = loadDataFromAsset(watchGyroAsset);
@@ -55,8 +66,8 @@ public class PhoneListenerService extends WearableListenerService {
                             ArrayList<ThreeTupleRecord> watchGyroRecords,
                             String username, String activityName) {
         File directory = SensorFileSaver.getDirectory(this, username, activityName);
-        File watchAccelFile = SensorFileSaver.createFile(directory, username, activityName, "watch_accel");
-        File watchGyroFile = SensorFileSaver.createFile(directory, username, activityName, "watch_gyro");
+        File watchAccelFile = SensorFileSaver.createFile(directory, username, activityName, WATCH_ACCEL);
+        File watchGyroFile = SensorFileSaver.createFile(directory, username, activityName, WATCH_GYRO);
         SensorFileSaver.writeFile(watchAccelFile, watchAccelRecords);
         SensorFileSaver.writeFile(watchGyroFile, watchGyroRecords);
     }

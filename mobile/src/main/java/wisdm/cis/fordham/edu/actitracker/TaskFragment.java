@@ -17,6 +17,8 @@ import java.util.Arrays;
 public class TaskFragment extends ListFragment {
 
     private static final String TAG = "TaskFragment";
+    private static final String USERNAME = "USERNAME";
+    private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -42,8 +44,8 @@ public class TaskFragment extends ListFragment {
         String activity = getListAdapter().getItem(position).toString();
         Toast.makeText(getActivity().getApplicationContext(), "Task Chosen: " + activity, Toast.LENGTH_SHORT).show();
         Intent i = new Intent(getActivity(), SensorLogActivity.class);
-        i.putExtra("USERNAME", ((TaskSelectionActivity)getActivity()).getUsername());
-        i.putExtra("ACTIVITY_NAME", activity);
+        i.putExtra(ACTIVITY_NAME, ((TaskSelectionActivity)getActivity()).getUsername());
+        i.putExtra(ACTIVITY_NAME, activity);
         startActivity(i);
     }
 }

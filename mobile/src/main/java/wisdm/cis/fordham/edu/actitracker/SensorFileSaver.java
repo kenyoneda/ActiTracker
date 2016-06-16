@@ -20,7 +20,7 @@ public final class SensorFileSaver {
 
     private SensorFileSaver() {}
 
-    // Make directory with path /User/Acitivty
+    // Make directory with path /User/Activity
     public static File getDirectory(Context context, String username, String activityName) {
         File directory = new File(context.getFilesDir() + File.separator + username +
                 File.separator + activityName);

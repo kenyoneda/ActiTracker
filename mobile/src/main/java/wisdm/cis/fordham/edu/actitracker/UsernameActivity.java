@@ -15,6 +15,7 @@ import android.widget.Toast;
 public class UsernameActivity extends AppCompatActivity {
 
     private static final String TAG = "UsernameActivity";
+    private static final String USERNAME = "USERNAME";
 
     private Button mNextButton;
     private EditText mUsernameText;
@@ -38,11 +39,12 @@ public class UsernameActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String username = mUsernameText.getText().toString().trim();
+                username.replace(" ", "_").toLowerCase();
 
                 // Check if a name was entered
                 if (username.length() != 0) {
                     Intent i = new Intent(UsernameActivity.this, TaskSelectionActivity.class);
-                    i.putExtra("USERNAME", username);
+                    i.putExtra(USERNAME, username);
                     startActivity(i);
                 }
                 // If no name was entered, prompt to enter name
