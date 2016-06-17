@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -38,8 +39,8 @@ public class UsernameActivity extends AppCompatActivity {
         mNextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String username = mUsernameText.getText().toString().trim();
-                username.replace(" ", "_").toLowerCase();
+                String username = mUsernameText.getText().toString()
+                        .trim().replace(" ", "_").toLowerCase();
 
                 // Check if a name was entered
                 if (username.length() != 0) {

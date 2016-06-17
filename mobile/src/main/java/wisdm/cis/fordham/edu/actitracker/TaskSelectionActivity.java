@@ -57,7 +57,7 @@ public class TaskSelectionActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 String activity = listView.getItemAtPosition(i).toString()
-                        .replace(" ", "_").toLowerCase();
+                        .trim().replace(" ", "_").toLowerCase();
                 Intent intent = new Intent(getApplicationContext(), SensorLogActivity.class);
                 intent.putExtra("USERNAME", getUsername());
                 intent.putExtra("ACTIVITY_NAME", activity);
