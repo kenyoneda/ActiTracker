@@ -7,6 +7,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.Wearable;
 import com.google.android.gms.wearable.WearableListenerService;
@@ -15,6 +16,7 @@ import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.File;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -30,8 +32,12 @@ public class PhoneListenerService extends WearableListenerService {
     private static final String USERNAME = "USERNAME";
     private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
     private static final String DATA = "/data";
+    private static final String WATCH_SENSORS = "/watch_sensors";
+    private static final String SENSOR_LIST_STRING = "SENSOR_LIST";
+    private static final String SENSOR_CODES = "SENSOR_CODES";
     private static final String WATCH_ACCEL = "watch_accel";
     private static final String WATCH_GYRO = "watch_gyro";
+
 
     public PhoneListenerService() {
     }
@@ -46,6 +52,9 @@ public class PhoneListenerService extends WearableListenerService {
         Log.d(TAG, "onDataChanged called");
 
         for (DataEvent event : dataEvents) {
+            /**
+             * Sensor data from phone
+             */
             if (event.getType() == DataEvent.TYPE_CHANGED &&
                     event.getDataItem().getUri().getPath().equals(DATA)) {
                 DataMapItem dataMapItem = DataMapItem.fromDataItem(event.getDataItem());
@@ -54,16 +63,33 @@ public class PhoneListenerService extends WearableListenerService {
                 String username = dataMapItem.getDataMap().getString(USERNAME);
                 String activityName = dataMapItem.getDataMap().getString(ACTIVITY_NAME);
 
-                ArrayList<ThreeTupleRecord> watchAccelData = loadDataFromAsset(watchAccelAsset);
-                ArrayList<ThreeTupleRecord> watchGyroData = loadDataFromAsset(watchGyroAsset);
+                ArrayList<SensorRecord> watchAccelData = loadDataFromAsset(watchAccelAsset);
+                ArrayList<SensorRecord> watchGyroData = loadDataFromAsset(watchGyroAsset);
 
                 writeFiles(watchAccelData, watchGyroData, username, activityName);
+            }
+
+            /**
+             * Sensor list from phone
+             */
+            if (event.getType() == DataEvent.TYPE_CHANGED &&
+                    event.getDataItem().getUri().getPath().equals(WATCH_SENSORS)) {
+                DataMapItem dataMapItem = DataMapItem.fromDataItem(event.getDataItem());
+
+                DataMap dataMap = dataMapItem.getDataMap();
+
+                ArrayList<String> sensorListString = dataMap.getStringArrayList(SENSOR_LIST_STRING);
+                ArrayList<Integer> sensorCodes = dataMap.getIntegerArrayList(SENSOR_CODES);
+
+                for (int i = 0; i < sensorListString.size(); i++) {
+                    Log.d(TAG, "Name: " + sensorListString.get(i) + " Code: " + sensorCodes.get(i));
+                }
             }
         }
     }
 
-    private void writeFiles(ArrayList<ThreeTupleRecord> watchAccelRecords,
-                            ArrayList<ThreeTupleRecord> watchGyroRecords,
+    private void writeFiles(ArrayList<SensorRecord> watchAccelRecords,
+                            ArrayList<SensorRecord> watchGyroRecords,
                             String username, String activityName) {
         File directory = SensorFileSaver.getDirectory(this, username, activityName);
         File watchAccelFile = SensorFileSaver.createFile(directory, username, activityName, WATCH_ACCEL);
@@ -77,7 +103,7 @@ public class PhoneListenerService extends WearableListenerService {
      * @param asset
      * @return
      */
-    private ArrayList<ThreeTupleRecord> loadDataFromAsset(Asset asset) {
+    private ArrayList<SensorRecord> loadDataFromAsset(Asset asset) {
         if (asset == null) {
             throw new IllegalArgumentException("Asset must be non-null");
         }
@@ -100,6 +126,6 @@ public class PhoneListenerService extends WearableListenerService {
             Log.w(TAG, "Requested an unknown Asset.");
         }
 
-        return (ArrayList<ThreeTupleRecord>) SerializationUtils.deserialize(assetInputStream);
+        return (ArrayList<SensorRecord>) SerializationUtils.deserialize(assetInputStream);
     }
 }

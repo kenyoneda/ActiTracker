@@ -1,14 +1,15 @@
 package wisdm.cis.fordham.edu.actitracker;
 
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.Vibrator;
-import android.renderscript.Sampler;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -19,7 +20,6 @@ import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
-import com.google.android.gms.wearable.WearableListenerService;
 
 import org.apache.commons.lang3.SerializationUtils;
 
@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  * Service that logs data for user determined time.
  * Sends data back to phone for writing.
  */
-public class WearSensorLogService extends WearableListenerService implements SensorEventListener {
+public class WearSensorLogService extends Service implements SensorEventListener {
 
     private static final String TAG = "WearSensorLogService";
     private static final String ACCEL_ASSET = "ACCEL_ASSET";
@@ -49,8 +49,10 @@ public class WearSensorLogService extends WearableListenerService implements Sen
     private Sensor mAccelerometer;
     private Sensor mGyroscope;
     private ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
-    private ArrayList<ThreeTupleRecord> mWatchAccelerometerRecords = new ArrayList<ThreeTupleRecord>();
-    private ArrayList<ThreeTupleRecord> mWatchGyroscopeRecords = new ArrayList<ThreeTupleRecord>();
+    private ArrayList<Integer> mSensorList = new ArrayList<Integer>();
+    private ArrayList<ArrayList<SensorRecord>> mRecords = new ArrayList<ArrayList<SensorRecord>>();
+    private ArrayList<SensorRecord> mWatchAccelerometerRecords = new ArrayList<SensorRecord>();
+    private ArrayList<SensorRecord> mWatchGyroscopeRecords = new ArrayList<SensorRecord>();
     private PowerManager mPowerManager;
     private PowerManager.WakeLock mWakeLock;
     private GoogleApiClient mGoogleApiClient;
@@ -229,22 +231,17 @@ public class WearSensorLogService extends WearableListenerService implements Sen
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        switch (event.sensor.getType()) {
-            case Sensor.TYPE_ACCELEROMETER:
-                mWatchAccelerometerRecords.add(
-                        new ThreeTupleRecord(
-                                event.timestamp, event.values[0], event.values[1], event.values[2]));
-                break;
-            case Sensor.TYPE_GYROSCOPE:
-                mWatchGyroscopeRecords.add(
-                        new ThreeTupleRecord(
-                                event.timestamp, event.values[0], event.values[1], event.values[2]));
-                break;
-        }
+        int index = mSensorList.indexOf(event.sensor.getType());
+        mRecords.get(index).add(new SensorRecord(event.timestamp, event.values));
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 }

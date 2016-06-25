@@ -3,6 +3,7 @@ package wisdm.cis.fordham.edu.actitracker;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -10,10 +11,18 @@ import android.hardware.SensorManager;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.Vibrator;
+import android.preference.PreferenceManager;
 import android.util.Log;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -29,15 +38,13 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     private static final String TIMED_MODE = "TIMED_MODE";
     private static final String USERNAME = "USERNAME";
     private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
-    private static final String PHONE_ACCEL = "phone_accel";
-    private static final String PHONE_GYRO = "phone_gyro";
+    private static final String PREF_SENSOR_LIST_PHONE = "pref_sensorListPhone";
 
     private SensorManager mSensorManager;
-    private Sensor mAccelerometer;
-    private Sensor mGyroscope;
+    private ArrayList<Integer> mSensorCodes = new ArrayList<Integer>();
+    private ArrayList<Sensor> mSensors = new ArrayList<Sensor>();
     private ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
-    private ArrayList<ThreeTupleRecord> mPhoneAccelerometerRecords = new ArrayList<ThreeTupleRecord>();
-    private ArrayList<ThreeTupleRecord> mPhoneGyroscopeRecords = new ArrayList<ThreeTupleRecord>();
+    private ArrayList<ArrayList<SensorRecord>> mRecords = new ArrayList<ArrayList<SensorRecord>>();
     private PowerManager mPowerManager;
     private PowerManager.WakeLock mWakeLock;
     private String username;
@@ -63,6 +70,8 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         int samplingRate = intent.getIntExtra(SAMPLING_RATE, 0);
         timedMode = intent.getBooleanExtra(TIMED_MODE, true);
 
+        getSensorList();
+
         Log.d(TAG, "Service Started. Username: " + username + ", Activity: " + activityName +
                 ", Sampling Rate: " + samplingRate + ", Minutes: " + minutes);
         registerSensorListeners(minutes, samplingRate);
@@ -75,8 +84,9 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         super.onDestroy();
         // Write files to disk if manual mode.
         if (!timedMode) {
-            mSensorManager.unregisterListener(PhoneSensorLogService.this, mAccelerometer);
-            mSensorManager.unregisterListener(PhoneSensorLogService.this, mGyroscope);
+            for (Sensor sensor : mSensors) {
+                mSensorManager.unregisterListener(PhoneSensorLogService.this, sensor);
+            }
             Log.d(TAG, "End: " + System.currentTimeMillis());
             writeFiles();
         }
@@ -102,8 +112,9 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         exec.schedule(new Runnable() {
             @Override
             public void run() {
-                mSensorManager.registerListener(PhoneSensorLogService.this, mAccelerometer, samplingRate);
-                mSensorManager.registerListener(PhoneSensorLogService.this, mGyroscope, samplingRate);
+                for (Sensor sensor : mSensors) {
+                    mSensorManager.registerListener(PhoneSensorLogService.this, sensor, samplingRate);
+                }
                 Log.d(TAG, "Start: " + System.currentTimeMillis());
                 if (timedMode) {
                     scheduleLogStop(minutes);
@@ -120,8 +131,9 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         exec.schedule(new Runnable() {
             @Override
             public void run() {
-                mSensorManager.unregisterListener(PhoneSensorLogService.this, mAccelerometer);
-                mSensorManager.unregisterListener(PhoneSensorLogService.this, mGyroscope);
+                for (Sensor sensor : mSensors) {
+                    mSensorManager.unregisterListener(PhoneSensorLogService.this, sensor);
+                }
                 Log.d(TAG, "End: " + System.currentTimeMillis());
 
                 // Notify user that logging is done
@@ -135,15 +147,35 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         }, minutes, TimeUnit.MINUTES);
     }
 
+    private void getSensorList() {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        // Default sensors (accel/gyro) if none are selected. TODO: Handle more gracefully.
+        Set<String> defaultSensors = new HashSet<String>(Arrays.asList("1", "4"));
+
+        List<String> stringList = new ArrayList<String>(sharedPreferences.getStringSet(PREF_SENSOR_LIST_PHONE, defaultSensors));
+
+        for (Iterator<String> it = stringList.iterator(); it.hasNext(); ) {
+            String s = it.next();
+            if (!StringUtils.isNumeric(s)) {
+                it.remove();
+            }
+            else {
+                mSensorCodes.add(Integer.valueOf(s));
+            }
+        }
+
+        for (int i = 0; i < mSensorCodes.size(); i++) {
+            mRecords.add(new ArrayList<SensorRecord>());
+        }
+    }
+
     /**
      * Get the accelerometer and gyroscope if available on device.
      */
     private void getSensors() {
-        if (mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null){
-            mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        }
-        if (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null){
-            mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        for (Integer i : mSensorCodes) {
+            mSensors.add(mSensorManager.getDefaultSensor(i));
         }
     }
 
@@ -163,26 +195,17 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
      */
     private void writeFiles() {
         File directory = SensorFileSaver.getDirectory(this, username, activityName);
-        File phoneAccelFile = SensorFileSaver.createFile(directory, username, activityName, PHONE_ACCEL);
-        File phoneGyroFile = SensorFileSaver.createFile(directory, username, activityName, PHONE_GYRO);
-        SensorFileSaver.writeFile(phoneAccelFile, mPhoneAccelerometerRecords);
-        SensorFileSaver.writeFile(phoneGyroFile, mPhoneGyroscopeRecords);
+        for (int i = 0; i < mRecords.size(); i++) {
+            File file = SensorFileSaver.createFile(directory, username, activityName,
+                    mSensors.get(i).getName().toLowerCase().replace(" ", "_"));
+            SensorFileSaver.writeFile(file, mRecords.get(i));
+        }
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        switch (event.sensor.getType()) {
-            case Sensor.TYPE_ACCELEROMETER:
-                mPhoneAccelerometerRecords.add(
-                        new ThreeTupleRecord(
-                                event.timestamp, event.values[0], event.values[1], event.values[2]));
-                break;
-            case Sensor.TYPE_GYROSCOPE:
-                mPhoneGyroscopeRecords.add(
-                        new ThreeTupleRecord(
-                                event.timestamp, event.values[0], event.values[1], event.values[2]));
-                break;
-        }
+        int index = mSensorCodes.indexOf(event.sensor.getType());
+        mRecords.get(index).add(new SensorRecord(event.timestamp, event.values));
     }
 
     @Override

@@ -45,13 +45,13 @@ public final class SensorFileSaver {
     }
 
     // Write data to file
-    public static void writeFile(File fileName, ArrayList<ThreeTupleRecord> data) {
+    public static void writeFile(File fileName, ArrayList<SensorRecord> data) {
         Log.d(TAG, "Writing file. Name: " + fileName.getPath());
         Log.d(TAG, "Lines: " + data.size());
         try {
             BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileName));
 
-            for (ThreeTupleRecord record : data) {
+            for (SensorRecord record : data) {
                 bufferedWriter.write(record.toString());
                 bufferedWriter.newLine();
             }

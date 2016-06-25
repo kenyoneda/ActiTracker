@@ -33,6 +33,11 @@
                     android:path="/stop"
                     android:scheme="wear" />
 
+                <data
+                    android:host="*"
+                    android:path="/get_sensors"
+                    android:scheme="wear" />
+
                 <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
 
                 <data

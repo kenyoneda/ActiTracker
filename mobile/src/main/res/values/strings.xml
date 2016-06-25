@@ -23,6 +23,10 @@
     <string name="invalid_time">Please enter a valid time.</string>
     <string name="file_size">File Size: </string>
 
+    <!--SettingsActivity-->
+    <string name="sensor_list_phone">Phone Sensor List</string>
+    <string name="sensor_list_wear">Watch Sensor List</string>
+
     <!--preferences.xml-->
     <string name="pref_samplingRate">Sampling Rate</string>
     <string-array name="pref_samplingRate_entries">
