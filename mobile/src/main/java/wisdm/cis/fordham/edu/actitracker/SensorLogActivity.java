@@ -15,6 +15,8 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
@@ -85,15 +87,19 @@ public class SensorLogActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
-        mGoogleApiClient.connect();
         showFileList();
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    protected void onStop() {
+        super.onStop();
         mGoogleApiClient.disconnect();
     }
 
@@ -109,9 +115,9 @@ public class SensorLogActivity extends AppCompatActivity {
                     @Override
                     public void onClick(View v) {
                         // prompt user if no time entered
-                        if (mLogTime.getText().toString().isEmpty()) {
-                                Toast.makeText(getApplicationContext(), R.string.invalid_time,
-                                        Toast.LENGTH_SHORT).show();
+                        if (timedMode && mLogTime.getText().toString().isEmpty()) {
+                            Toast.makeText(getApplicationContext(), R.string.invalid_time,
+                                    Toast.LENGTH_SHORT).show();
                         }
 
                         else {
@@ -129,7 +135,7 @@ public class SensorLogActivity extends AppCompatActivity {
                             }
 
                             // Send settings and start logging on watch
-                            sendSettingsandStart();
+                            sendSettingsAndStart();
 
                             // Start service on phone
                             startService(i);
@@ -232,18 +238,24 @@ public class SensorLogActivity extends AppCompatActivity {
      * Sends all necessary parameters to watch. Once they are sent, logging service is started
      * by WearListenerService.
      */
-    private void sendSettingsandStart() {
-        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(SETTINGS);
-        putDataMapRequest.getDataMap().putInt(MINUTES, minutes);
-        putDataMapRequest.getDataMap().putInt(SAMPLING_RATE, getSamplingRate());
-        putDataMapRequest.getDataMap().putBoolean(TIMED_MODE, timedMode);
-        putDataMapRequest.getDataMap().putString(USERNAME, username);
-        putDataMapRequest.getDataMap().putString(ACTIVITY_NAME, activityName);
-        putDataMapRequest.getDataMap().putIntegerArrayList(WATCH_SENSOR_CODES, watchSensorCodes);
-        putDataMapRequest.getDataMap().putLong(TIMESTAMP, System.currentTimeMillis());
+    private void sendSettingsAndStart() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(SETTINGS);
+                putDataMapRequest.getDataMap().putInt(MINUTES, minutes);
+                putDataMapRequest.getDataMap().putInt(SAMPLING_RATE, getSamplingRate());
+                putDataMapRequest.getDataMap().putBoolean(TIMED_MODE, timedMode);
+                putDataMapRequest.getDataMap().putString(USERNAME, username);
+                putDataMapRequest.getDataMap().putString(ACTIVITY_NAME, activityName);
+                putDataMapRequest.getDataMap().putIntegerArrayList(WATCH_SENSOR_CODES, watchSensorCodes);
+                putDataMapRequest.getDataMap().putLong(TIMESTAMP, System.currentTimeMillis());
 
-        PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
-        Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest);
+                PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
+                PendingResult<DataApi.DataItemResult> pendingResult =
+                        Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest);
+            }
+        }).start();
     }
 
     // Get sampling rate from preferences (settings page).

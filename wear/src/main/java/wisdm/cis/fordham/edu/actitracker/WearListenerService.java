@@ -71,7 +71,6 @@ public class WearListenerService extends WearableListenerService {
             for (Sensor sensor : sensorList) {
                 sensorListString.add(sensor.getName());
                 sensorCodes.add(sensor.getType());
-                Log.d(TAG, "String: " + sensor.getName() + " Code: " + sensor.getType());
             }
 
             putDataMapRequest.getDataMap().putLong(TIMESTAMP, System.currentTimeMillis());
