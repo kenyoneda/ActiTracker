@@ -9,8 +9,11 @@ import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.wearable.view.WatchViewStub;
 import android.widget.Chronometer;
-import android.widget.TextView;
 
+/**
+ * This class displays a stopwatch timer when app is logging in manual mode.
+ * Closes itself when done (via stop button - local broadcast from WearSensorLogService).
+ */
 public class LogStopwatchActivity extends Activity {
 
     private static final String TAG = "LogStopwatchActivity";

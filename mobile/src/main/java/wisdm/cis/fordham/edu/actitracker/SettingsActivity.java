@@ -1,13 +1,17 @@
 package wisdm.cis.fordham.edu.actitracker;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.preference.MultiSelectListPreference;
-import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceScreen;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -22,7 +26,8 @@ import java.util.List;
 
 /**
  * Manages logging settings.
- * 1. Sensor List - Dynamically updated through SensorManager
+ * 1. Sensor List - Dynamically updated for device. Name of sensor is the entry and their constant
+ * int code (Sensor.getType()) is the value.
  * 2. Sampling Rate - Through xml/preferences.xml
  */
 public class SettingsActivity extends PreferenceActivity {
@@ -43,8 +48,16 @@ public class SettingsActivity extends PreferenceActivity {
         private static final String PREF_SENSOR_LIST_PHONE = "pref_sensorListPhone";
         private static final String PREF_SENSOR_LIST_WEAR = "pref_sensorListWear";
         private static final String GET_SENSORS = "/get_sensors";
+        private static final String WATCH_SENSORS = "/watch_sensors";
+        private static final String SENSOR_LIST_STRING = "SENSOR_LIST_STRING";
+        private static final String SENSOR_CODES = "SENSOR_CODES";
 
         private GoogleApiClient mGoogleApiClient;
+        private LocalBroadcastManager mLocalBroadcastManager;
+        private BroadcastReceiver mBroadcastReceiver;
+        private ArrayList<String> mWearSensorListString;
+        private ArrayList<Integer> mWearSensorCodes;
+        private PreferenceScreen mPreferenceScreen;
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
@@ -53,22 +66,47 @@ public class SettingsActivity extends PreferenceActivity {
             initializeGoogleApiClient();
             sendMessage(GET_SENSORS);
 
+            /**
+             * Receiver for list of sensors from watch (via PhoneListenerService).
+             * Once this is received, update settings page.
+             */
+            mBroadcastReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (intent.getAction().equals(WATCH_SENSORS)) {
+                        Log.d(TAG, "Broadcast receives.");
+                        mWearSensorListString = intent.getStringArrayListExtra(SENSOR_LIST_STRING);
+                        mWearSensorCodes = intent.getIntegerArrayListExtra(SENSOR_CODES);
+                        MultiSelectListPreference preferenceListWear = new MultiSelectListPreference(getActivity());
+                        preferenceListWear.setKey(PREF_SENSOR_LIST_WEAR);
+                        preferenceListWear.setTitle(getResources().getString(R.string.sensor_list_wear));
+                        preferenceListWear.setEntries(
+                                mWearSensorListString.toArray(new CharSequence[mWearSensorListString.size()]));
+                        CharSequence[] wearSensorCodes = new CharSequence[mWearSensorCodes.size()];
+                        for (int i = 0; i < mWearSensorCodes.size(); i++) {
+                            wearSensorCodes[i] = mWearSensorCodes.get(i).toString();
+                        }
+                        preferenceListWear.setEntryValues(wearSensorCodes);
+                        mPreferenceScreen.addPreference(preferenceListWear);
+                        setPreferenceScreen(mPreferenceScreen);
+                    }
+                }
+            };
+            mLocalBroadcastManager = LocalBroadcastManager.getInstance(getActivity());
+            IntentFilter mIntentFilter = new IntentFilter();
+            mIntentFilter.addAction(WATCH_SENSORS);
+            mLocalBroadcastManager.registerReceiver(mBroadcastReceiver, mIntentFilter);
+
             // Create preference for choosing phone sensors to log with
-            PreferenceScreen preferenceScreen = getPreferenceManager().createPreferenceScreen(getActivity());
+            mPreferenceScreen = getPreferenceManager().createPreferenceScreen(getActivity());
             MultiSelectListPreference preferenceListPhone = new MultiSelectListPreference(getActivity());
             preferenceListPhone.setKey(PREF_SENSOR_LIST_PHONE);
             preferenceListPhone.setTitle(getResources().getString(R.string.sensor_list_phone));
             preferenceListPhone.setEntries(getSensorList());
             preferenceListPhone.setEntryValues(getSensorCodes());
-            preferenceScreen.addPreference(preferenceListPhone);
+            mPreferenceScreen.addPreference(preferenceListPhone);
 
-            // Create preference for choosing watch sensors to log with
-            MultiSelectListPreference preferenceListWear = new MultiSelectListPreference(getActivity());
-            preferenceListWear.setKey(PREF_SENSOR_LIST_WEAR);
-            preferenceListWear.setTitle(getResources().getString(R.string.sensor_list_wear));
-            preferenceScreen.addPreference(preferenceListWear);
-            setPreferenceScreen(preferenceScreen);
-
+            setPreferenceScreen(mPreferenceScreen);
             addPreferencesFromResource(R.xml.preferences);
         }
 
@@ -78,6 +116,7 @@ public class SettingsActivity extends PreferenceActivity {
             if (null != mGoogleApiClient && mGoogleApiClient.isConnected()) {
                 mGoogleApiClient.disconnect();
             }
+            mLocalBroadcastManager.unregisterReceiver(mBroadcastReceiver);
         }
 
         /**
@@ -166,6 +205,5 @@ public class SettingsActivity extends PreferenceActivity {
                     }
                 }).start();
         }
-
     }
 }

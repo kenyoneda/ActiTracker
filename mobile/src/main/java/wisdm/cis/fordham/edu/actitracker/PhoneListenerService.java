@@ -1,5 +1,7 @@
 package wisdm.cis.fordham.edu.actitracker;
 
+import android.content.Intent;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -16,7 +18,6 @@ import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.File;
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -27,17 +28,13 @@ import java.util.concurrent.TimeUnit;
 public class PhoneListenerService extends WearableListenerService {
 
     private static final String TAG = "PhoneListenerService";
-    private static final String ACCEL_ASSET = "ACCEL_ASSET";
-    private static final String GYRO_ASSET = "GYRO_ASSET";
     private static final String USERNAME = "USERNAME";
     private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
     private static final String DATA = "/data";
     private static final String WATCH_SENSORS = "/watch_sensors";
-    private static final String SENSOR_LIST_STRING = "SENSOR_LIST";
+    private static final String SENSOR_LIST_STRING = "SENSOR_LIST_STRING";
     private static final String SENSOR_CODES = "SENSOR_CODES";
-    private static final String WATCH_ACCEL = "watch_accel";
-    private static final String WATCH_GYRO = "watch_gyro";
-
+    private static final String WATCH_SENSOR_NAMES = "WATCH_SENSOR_NAMES";
 
     public PhoneListenerService() {
     }
@@ -53,24 +50,33 @@ public class PhoneListenerService extends WearableListenerService {
 
         for (DataEvent event : dataEvents) {
             /**
-             * Sensor data from phone
+             * Sensor data from watch
              */
             if (event.getType() == DataEvent.TYPE_CHANGED &&
                     event.getDataItem().getUri().getPath().equals(DATA)) {
+
                 DataMapItem dataMapItem = DataMapItem.fromDataItem(event.getDataItem());
-                Asset watchAccelAsset = dataMapItem.getDataMap().getAsset(ACCEL_ASSET);
-                Asset watchGyroAsset = dataMapItem.getDataMap().getAsset(GYRO_ASSET);
+
+                // Names & assets of watch sensors that were sampled with
+                ArrayList<String> watchSensorNames =
+                        dataMapItem.getDataMap().getStringArrayList(WATCH_SENSOR_NAMES);
+                ArrayList<Asset> assets = new ArrayList<Asset>(watchSensorNames.size());
+                for (String sensor : watchSensorNames) {
+                    assets.add(dataMapItem.getDataMap().getAsset(sensor));
+                }
+
                 String username = dataMapItem.getDataMap().getString(USERNAME);
                 String activityName = dataMapItem.getDataMap().getString(ACTIVITY_NAME);
 
-                ArrayList<SensorRecord> watchAccelData = loadDataFromAsset(watchAccelAsset);
-                ArrayList<SensorRecord> watchGyroData = loadDataFromAsset(watchGyroAsset);
-
-                writeFiles(watchAccelData, watchGyroData, username, activityName);
+                // Unpack data from each asset and write to file
+                for (int i = 0; i < assets.size(); i++) {
+                    ArrayList<SensorRecord> record = loadDataFromAsset(assets.get(i));
+                    writeFile(record, username, activityName, watchSensorNames.get(i));
+                }
             }
 
             /**
-             * Sensor list from phone
+             * Sensor list from watch. Send local broadcast to settings page.
              */
             if (event.getType() == DataEvent.TYPE_CHANGED &&
                     event.getDataItem().getUri().getPath().equals(WATCH_SENSORS)) {
@@ -81,21 +87,21 @@ public class PhoneListenerService extends WearableListenerService {
                 ArrayList<String> sensorListString = dataMap.getStringArrayList(SENSOR_LIST_STRING);
                 ArrayList<Integer> sensorCodes = dataMap.getIntegerArrayList(SENSOR_CODES);
 
-                for (int i = 0; i < sensorListString.size(); i++) {
-                    Log.d(TAG, "Name: " + sensorListString.get(i) + " Code: " + sensorCodes.get(i));
-                }
+                Intent i = new Intent(WATCH_SENSORS);
+                i.putExtra(SENSOR_LIST_STRING, sensorListString);
+                i.putExtra(SENSOR_CODES, sensorCodes);
+                LocalBroadcastManager localBroadcastManager =
+                        LocalBroadcastManager.getInstance(PhoneListenerService.this);
+                localBroadcastManager.sendBroadcast(i);
             }
         }
     }
 
-    private void writeFiles(ArrayList<SensorRecord> watchAccelRecords,
-                            ArrayList<SensorRecord> watchGyroRecords,
-                            String username, String activityName) {
+    private void writeFile(ArrayList<SensorRecord> record, String username, String activityName,
+                           String sensorName) {
         File directory = SensorFileSaver.getDirectory(this, username, activityName);
-        File watchAccelFile = SensorFileSaver.createFile(directory, username, activityName, WATCH_ACCEL);
-        File watchGyroFile = SensorFileSaver.createFile(directory, username, activityName, WATCH_GYRO);
-        SensorFileSaver.writeFile(watchAccelFile, watchAccelRecords);
-        SensorFileSaver.writeFile(watchGyroFile, watchGyroRecords);
+        File file = SensorFileSaver.createFile(directory, username, activityName, sensorName);
+        SensorFileSaver.writeFile(file, record);
     }
 
     /**

@@ -147,6 +147,9 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         }, minutes, TimeUnit.MINUTES);
     }
 
+    /**
+     * Get selected sensor codes from preference page
+     */
     private void getSensorList() {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -155,27 +158,20 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
 
         List<String> stringList = new ArrayList<String>(sharedPreferences.getStringSet(PREF_SENSOR_LIST_PHONE, defaultSensors));
 
-        for (Iterator<String> it = stringList.iterator(); it.hasNext(); ) {
-            String s = it.next();
-            if (!StringUtils.isNumeric(s)) {
-                it.remove();
-            }
-            else {
+        for (String s : stringList) {
+            if (StringUtils.isNumeric(s)) {
                 mSensorCodes.add(Integer.valueOf(s));
             }
-        }
-
-        for (int i = 0; i < mSensorCodes.size(); i++) {
-            mRecords.add(new ArrayList<SensorRecord>());
         }
     }
 
     /**
-     * Get the accelerometer and gyroscope if available on device.
+     * Get sensors and create an equal number of ArrayList of SensorRecords
      */
     private void getSensors() {
         for (Integer i : mSensorCodes) {
             mSensors.add(mSensorManager.getDefaultSensor(i));
+            mRecords.add(new ArrayList<SensorRecord>());
         }
     }
 
@@ -197,7 +193,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         File directory = SensorFileSaver.getDirectory(this, username, activityName);
         for (int i = 0; i < mRecords.size(); i++) {
             File file = SensorFileSaver.createFile(directory, username, activityName,
-                    mSensors.get(i).getName().toLowerCase().replace(" ", "_"));
+                    mSensors.get(i).getName().trim().toLowerCase().replace(" ", "_"));
             SensorFileSaver.writeFile(file, mRecords.get(i));
         }
     }

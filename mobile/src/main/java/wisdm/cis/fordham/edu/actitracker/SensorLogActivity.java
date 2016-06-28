@@ -24,6 +24,10 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Activity to prepare user for data collection.
@@ -42,11 +46,12 @@ public class SensorLogActivity extends AppCompatActivity {
     private static final String SAMPLING_RATE = "SAMPLING_RATE";
     private static final String MINUTES = "MINUTES";
     private static final String TIMESTAMP = "TIMESTAMP";
+    private static final String WATCH_SENSOR_CODES = "WATCH_SENSOR_CODES";
     private static final String STOP = "/stop";
     private static final String SETTINGS = "/settings";
     private static final String PREF_SAMPLING_RATE = "pref_samplingRate";
-
-
+    private static final String PREF_SENSOR_LIST_WEAR = "pref_sensorListWear";
+    
     private Button mLogStartButton;
     private Button mLogStopButton;
     private EditText mLogTime;
@@ -56,6 +61,7 @@ public class SensorLogActivity extends AppCompatActivity {
     private boolean timedMode;      // True if timed mode. False if manual mode.
     private int minutes;            // Data log time in minutes.
     private int samplingRate;
+    private ArrayList<Integer> watchSensorCodes;
     private GoogleApiClient mGoogleApiClient;
 
     @Override
@@ -73,6 +79,7 @@ public class SensorLogActivity extends AppCompatActivity {
         username = i.getStringExtra(USERNAME);
         activityName = i.getStringExtra(ACTIVITY_NAME);
         samplingRate = getSamplingRate();
+        watchSensorCodes = getWatchSensorCodes();
 
         setOnClickListeners();
     }
@@ -101,38 +108,25 @@ public class SensorLogActivity extends AppCompatActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-
-                        Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
-                        // timed mode
-                        if (timedMode) {
-                            // prompt user if no time entered
-                            if (mLogTime.getText().toString().isEmpty()) {
+                        // prompt user if no time entered
+                        if (mLogTime.getText().toString().isEmpty()) {
                                 Toast.makeText(getApplicationContext(), R.string.invalid_time,
                                         Toast.LENGTH_SHORT).show();
-                            } else {
-                                minutes = Integer.parseInt(mLogTime.getText().toString());
-
-                                mLogStartButton.setEnabled(false);
-                                i.putExtra(USERNAME, username);
-                                i.putExtra(ACTIVITY_NAME, activityName);
-                                i.putExtra(TIMED_MODE, timedMode);
-                                i.putExtra(SAMPLING_RATE, samplingRate);
-                                i.putExtra(MINUTES, minutes);
-
-                                // Send settings and start logging on watch
-                                sendSettingsandStart();
-
-                                // Start service on phone
-                                startService(i);
-                            }
                         }
-                        // manual mode
+
                         else {
+                            Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
                             mLogStartButton.setEnabled(false);
                             i.putExtra(USERNAME, username);
                             i.putExtra(ACTIVITY_NAME, activityName);
                             i.putExtra(TIMED_MODE, timedMode);
                             i.putExtra(SAMPLING_RATE, samplingRate);
+
+                            // Send minutes if timed mode
+                            if (timedMode) {
+                                minutes = Integer.parseInt(mLogTime.getText().toString());
+                                i.putExtra(MINUTES, minutes);
+                            }
 
                             // Send settings and start logging on watch
                             sendSettingsandStart();
@@ -245,6 +239,7 @@ public class SensorLogActivity extends AppCompatActivity {
         putDataMapRequest.getDataMap().putBoolean(TIMED_MODE, timedMode);
         putDataMapRequest.getDataMap().putString(USERNAME, username);
         putDataMapRequest.getDataMap().putString(ACTIVITY_NAME, activityName);
+        putDataMapRequest.getDataMap().putIntegerArrayList(WATCH_SENSOR_CODES, watchSensorCodes);
         putDataMapRequest.getDataMap().putLong(TIMESTAMP, System.currentTimeMillis());
 
         PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
@@ -255,6 +250,18 @@ public class SensorLogActivity extends AppCompatActivity {
     private int getSamplingRate() {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         return Integer.parseInt(sharedPreferences.getString(PREF_SAMPLING_RATE, "0"));
+    }
+
+    // Get watch sensors from preferences (settings page).
+    private ArrayList<Integer> getWatchSensorCodes() {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        Set<String> defaultSensors = new HashSet<String>(Arrays.asList("1", "4"));
+        List<String> stringList = new ArrayList<String>(sharedPreferences.getStringSet(PREF_SENSOR_LIST_WEAR, defaultSensors));
+        ArrayList<Integer> watchSensorCodes = new ArrayList<Integer>();
+        for (String s : stringList) {
+            watchSensorCodes.add(Integer.valueOf(s));
+        }
+        return watchSensorCodes;
     }
 
     /**

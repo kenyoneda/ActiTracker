@@ -30,7 +30,7 @@ public class WearListenerService extends WearableListenerService {
     private static final String TAG = "WearListenerService";
     private static final String STOP_COLLECTION = "/stop";
     private static final String GET_SENSORS = "/get_sensors";
-    private static final String SENSOR_LIST_STRING = "SENSOR_LIST";
+    private static final String SENSOR_LIST_STRING = "SENSOR_LIST_STRING";
     private static final String SENSOR_CODES = "SENSOR_CODES";
     private static final String SETTINGS = "/settings";
     private static final String MINUTES = "MINUTES";
@@ -40,6 +40,7 @@ public class WearListenerService extends WearableListenerService {
     private static final String USERNAME = "USERNAME";
     private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
     private static final String DELAY = "DELAY";
+    private static final String WATCH_SENSOR_CODES = "WATCH_SENSOR_CODES";
     private static final String WATCH_SENSORS = "/watch_sensors";
 
     private GoogleApiClient mGoogleApiClient;
@@ -49,6 +50,7 @@ public class WearListenerService extends WearableListenerService {
     private long phoneToWatchDelay;
     private String username;
     private String activityName;
+    private ArrayList<Integer> watchSensorCodes;
 
     public WearListenerService() {
     }
@@ -69,14 +71,19 @@ public class WearListenerService extends WearableListenerService {
             for (Sensor sensor : sensorList) {
                 sensorListString.add(sensor.getName());
                 sensorCodes.add(sensor.getType());
+                Log.d(TAG, "String: " + sensor.getName() + " Code: " + sensor.getType());
             }
 
+            putDataMapRequest.getDataMap().putLong(TIMESTAMP, System.currentTimeMillis());
             putDataMapRequest.getDataMap().putStringArrayList(SENSOR_LIST_STRING, sensorListString);
             putDataMapRequest.getDataMap().putIntegerArrayList(SENSOR_CODES, sensorCodes);
             PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
-            initializeGoogleApiClient();
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addApi(Wearable.API)
+                    .build();
+            mGoogleApiClient.blockingConnect();
             Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest);
-            Log.d(TAG, "worked");
+            mGoogleApiClient.disconnect();
         }
     }
 
@@ -93,6 +100,7 @@ public class WearListenerService extends WearableListenerService {
                 phoneToWatchDelay = dataMap.getLong(TIMESTAMP);
                 username = dataMap.getString(USERNAME);
                 activityName = dataMap.getString(ACTIVITY_NAME);
+                watchSensorCodes = dataMap.getIntegerArrayList(WATCH_SENSOR_CODES);
             }
         }
 
@@ -104,13 +112,7 @@ public class WearListenerService extends WearableListenerService {
         i.putExtra(DELAY, phoneToWatchDelay);
         i.putExtra(USERNAME, username);
         i.putExtra(ACTIVITY_NAME, activityName);
+        i.putExtra(WATCH_SENSOR_CODES, watchSensorCodes);
         startService(i);
-    }
-
-    private void initializeGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API)
-                .build();
-        mGoogleApiClient.blockingConnect();
     }
 }

@@ -6,7 +6,7 @@ import android.support.wearable.view.WatchViewStub;
 import android.widget.TextView;
 
 /**
- * Opening activity.
+ * Launcher activity
  */
 public class InitialActivity extends Activity {
 

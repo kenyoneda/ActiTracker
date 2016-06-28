@@ -34,25 +34,22 @@ import java.util.concurrent.TimeUnit;
 public class WearSensorLogService extends Service implements SensorEventListener {
 
     private static final String TAG = "WearSensorLogService";
-    private static final String ACCEL_ASSET = "ACCEL_ASSET";
-    private static final String GYRO_ASSET = "GYRO_ASSET";
     private static final String USERNAME = "USERNAME";
     private static final String ACTIVITY_NAME = "ACTIVITY_NAME";
     private static final String MINUTES = "MINUTES";
     private static final String SAMPLING_RATE = "SAMPLING_RATE";
     private static final String TIMED_MODE = "TIMED_MODE";
     private static final String DELAY = "DELAY";
+    private static final String WATCH_SENSOR_CODES = "WATCH_SENSOR_CODES";
+    private static final String WATCH_SENSOR_NAMES = "WATCH_SENSOR_NAMES";
     private static final String STOP_STOPWATCH = "stop_stopwatch";
     private static final String DATA = "/data";
 
+    private ArrayList<Sensor> mSensors = new ArrayList<Sensor>();
+    private ArrayList<Integer> mSensorCodes = new ArrayList<Integer>();
     private SensorManager mSensorManager;
-    private Sensor mAccelerometer;
-    private Sensor mGyroscope;
     private ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
-    private ArrayList<Integer> mSensorList = new ArrayList<Integer>();
     private ArrayList<ArrayList<SensorRecord>> mRecords = new ArrayList<ArrayList<SensorRecord>>();
-    private ArrayList<SensorRecord> mWatchAccelerometerRecords = new ArrayList<SensorRecord>();
-    private ArrayList<SensorRecord> mWatchGyroscopeRecords = new ArrayList<SensorRecord>();
     private PowerManager mPowerManager;
     private PowerManager.WakeLock mWakeLock;
     private GoogleApiClient mGoogleApiClient;
@@ -80,6 +77,7 @@ public class WearSensorLogService extends Service implements SensorEventListener
         timedMode = intent.getBooleanExtra(TIMED_MODE, true);
         username = intent.getStringExtra(USERNAME);
         activityName = intent.getStringExtra(ACTIVITY_NAME);
+        mSensorCodes = intent.getIntegerArrayListExtra(WATCH_SENSOR_CODES);
 
         Log.d(TAG, "Service Started. Username: " + username + ", Activity: " + activityName +
                 ", Sampling Rate: " + samplingRate + ", Minutes: " + minutes);
@@ -91,8 +89,9 @@ public class WearSensorLogService extends Service implements SensorEventListener
     public void onDestroy() {
         super.onDestroy();
         if (!timedMode) {
-            mSensorManager.unregisterListener(WearSensorLogService.this, mAccelerometer);
-            mSensorManager.unregisterListener(WearSensorLogService.this, mGyroscope);
+            for (Sensor sensor : mSensors) {
+                mSensorManager.unregisterListener(WearSensorLogService.this, sensor);
+            }
             Log.d(TAG, "End: " + System.currentTimeMillis());
             stopStopwatch();
             sendData();
@@ -126,8 +125,9 @@ public class WearSensorLogService extends Service implements SensorEventListener
             @Override
             public void run() {
                 displayTimer();
-                mSensorManager.registerListener(WearSensorLogService.this, mAccelerometer, samplingRate);
-                mSensorManager.registerListener(WearSensorLogService.this, mGyroscope, samplingRate);
+                for (Sensor sensor : mSensors) {
+                    mSensorManager.registerListener(WearSensorLogService.this, sensor, samplingRate);
+                }
                 Log.d(TAG, "Start: " + System.currentTimeMillis());
                 if (timedMode) {
                     scheduleLogStop(minutes);
@@ -144,8 +144,9 @@ public class WearSensorLogService extends Service implements SensorEventListener
         exec.schedule(new Runnable() {
             @Override
             public void run() {
-                mSensorManager.unregisterListener(WearSensorLogService.this, mAccelerometer);
-                mSensorManager.unregisterListener(WearSensorLogService.this, mGyroscope);
+                for (Sensor sensor : mSensors) {
+                    mSensorManager.unregisterListener(WearSensorLogService.this, sensor);
+                }
                 Log.d(TAG, "End: " + System.currentTimeMillis());
 
                 // Notify user that logging is done
@@ -160,15 +161,12 @@ public class WearSensorLogService extends Service implements SensorEventListener
     }
 
     /**
-     * Get the accelerometer and gyroscope if available on device
+     * Get sensors and create an equal number of ArrayList of SensorRecords
      */
     private void getSensors() {
-
-        if (mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
-            mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        }
-        if (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null){
-            mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        for (Integer i : mSensorCodes) {
+            mSensors.add(mSensorManager.getDefaultSensor(i));
+            mRecords.add(new ArrayList<SensorRecord>());
         }
     }
 
@@ -183,12 +181,16 @@ public class WearSensorLogService extends Service implements SensorEventListener
     }
 
     /**
-     * comment
+     * Send data to phone
      */
     private void sendData() {
         Log.d(TAG, "Sending data from watch to phone");
-        Asset accelAsset = Asset.createFromBytes(SerializationUtils.serialize(mWatchAccelerometerRecords));
-        Asset gyroAsset = Asset.createFromBytes(SerializationUtils.serialize(mWatchGyroscopeRecords));
+
+        // Create asset for each ArrayList of SensorRecords
+        Asset[] assets = new Asset[mRecords.size()];
+        for (int i = 0; i < mRecords.size(); i++) {
+            assets[i] = Asset.createFromBytes(SerializationUtils.serialize(mRecords.get(i)));
+        }
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Wearable.API)
@@ -196,13 +198,18 @@ public class WearSensorLogService extends Service implements SensorEventListener
         mGoogleApiClient.connect();
 
         PutDataMapRequest dataMap = PutDataMapRequest.create(DATA);
-        dataMap.getDataMap().putAsset(ACCEL_ASSET, accelAsset);
-        dataMap.getDataMap().putAsset(GYRO_ASSET, gyroAsset);
+        ArrayList<String> sensorNames = new ArrayList<String>(mSensors.size());
+        for (int i = 0; i < mSensors.size(); i++) {
+            sensorNames.add(i, mSensors.get(i).getName().trim().toLowerCase().replace(" ", "_"));
+        }
+        dataMap.getDataMap().putStringArrayList(WATCH_SENSOR_NAMES, sensorNames);
+        for (int i = 0; i < assets.length; i++) {
+            dataMap.getDataMap().putAsset(sensorNames.get(i), assets[i]);
+        }
         dataMap.getDataMap().putString(USERNAME, username);
         dataMap.getDataMap().putString(ACTIVITY_NAME, activityName);
         PutDataRequest request = dataMap.asPutDataRequest();
-        PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
-                .putDataItem(mGoogleApiClient, request);
+        Wearable.DataApi.putDataItem(mGoogleApiClient, request);
     }
 
     /**
@@ -223,6 +230,9 @@ public class WearSensorLogService extends Service implements SensorEventListener
         }
     }
 
+    /**
+     * Stop stopwatch if in manual mode
+     */
     private void stopStopwatch() {
         LocalBroadcastManager localBroadcastManager =
                 LocalBroadcastManager.getInstance(WearSensorLogService.this);
@@ -231,7 +241,7 @@ public class WearSensorLogService extends Service implements SensorEventListener
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        int index = mSensorList.indexOf(event.sensor.getType());
+        int index = mSensorCodes.indexOf(event.sensor.getType());
         mRecords.get(index).add(new SensorRecord(event.timestamp, event.values));
     }
 
