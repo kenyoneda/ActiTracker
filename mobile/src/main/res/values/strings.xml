@@ -22,6 +22,7 @@
     <string name="log_time_hint">Enter time in minutes to sample.</string>
     <string name="invalid_time">Please enter a valid time.</string>
     <string name="file_size">File Size:\u0020</string>
+    <string name="log_timer_end">00:00</string>
 
     <!--SettingsActivity-->
     <string name="sensor_list_phone">Phone Sensor List</string>

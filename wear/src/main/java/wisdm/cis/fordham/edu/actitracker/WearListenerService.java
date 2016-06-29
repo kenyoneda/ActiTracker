@@ -42,6 +42,7 @@ public class WearListenerService extends WearableListenerService {
     private static final String DELAY = "DELAY";
     private static final String WATCH_SENSOR_CODES = "WATCH_SENSOR_CODES";
     private static final String WATCH_SENSORS = "/watch_sensors";
+    private static final long MAX_DELAY = 30000L;  // when wear is connected at a later time or is delayed
 
     private GoogleApiClient mGoogleApiClient;
     private int minutes;
@@ -103,15 +104,17 @@ public class WearListenerService extends WearableListenerService {
             }
         }
 
-        Intent i = new Intent(WearListenerService.this, WearSensorLogService.class);
+        if (System.currentTimeMillis() - phoneToWatchDelay < MAX_DELAY) {
+            Intent i = new Intent(WearListenerService.this, WearSensorLogService.class);
 
-        i.putExtra(MINUTES, minutes);
-        i.putExtra(SAMPLING_RATE, samplingRate);
-        i.putExtra(TIMED_MODE, timedMode);
-        i.putExtra(DELAY, phoneToWatchDelay);
-        i.putExtra(USERNAME, username);
-        i.putExtra(ACTIVITY_NAME, activityName);
-        i.putExtra(WATCH_SENSOR_CODES, watchSensorCodes);
-        startService(i);
+            i.putExtra(MINUTES, minutes);
+            i.putExtra(SAMPLING_RATE, samplingRate);
+            i.putExtra(TIMED_MODE, timedMode);
+            i.putExtra(DELAY, phoneToWatchDelay);
+            i.putExtra(USERNAME, username);
+            i.putExtra(ACTIVITY_NAME, activityName);
+            i.putExtra(WATCH_SENSOR_CODES, watchSensorCodes);
+            startService(i);
+        }
     }
 }

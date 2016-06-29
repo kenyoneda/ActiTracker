@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 public class LogTimerActivity extends Activity {
 
     private static final String TAG = "LogTimerActivity";
-    private TextView mSeconds;
+    private TextView mTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,10 +26,10 @@ public class LogTimerActivity extends Activity {
         stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
             @Override
             public void onLayoutInflated(WatchViewStub stub) {
-                mSeconds = (TextView) stub.findViewById(R.id.seconds);
+                mTimer = (TextView) stub.findViewById(R.id.timer);
                 Bundle extras = getIntent().getExtras();
                 if (extras == null) {
-                    mSeconds.setText(getResources().getString(R.string.wear_error));
+                    mTimer.setText(getResources().getString(R.string.wear_error));
                 } else {
                     long milliseconds = extras.getInt("MINUTES", 0) * 60 * 1000;
                     long ms = 1000L;
@@ -39,7 +39,7 @@ public class LogTimerActivity extends Activity {
                             String time = String.format("%02d : %02d",
                                     TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished),
                                     TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) % 60);
-                            mSeconds.setText(time);
+                            mTimer.setText(time);
                         }
 
                         // Close activity when done

@@ -3,14 +3,19 @@ package wisdm.cis.fordham.edu.actitracker;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Chronometer;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -30,6 +35,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Activity to prepare user for data collection.
@@ -56,6 +62,8 @@ public class SensorLogActivity extends AppCompatActivity {
     
     private Button mLogStartButton;
     private Button mLogStopButton;
+    private TextView mTimer;
+    private Chronometer mChronometer;
     private EditText mLogTime;
     private ListView mFileList;
     private String username;
@@ -63,6 +71,7 @@ public class SensorLogActivity extends AppCompatActivity {
     private boolean timedMode;      // True if timed mode. False if manual mode.
     private int minutes;            // Data log time in minutes.
     private int samplingRate;
+    private long logDelay = 5000L;
     private ArrayList<Integer> watchSensorCodes;
     private GoogleApiClient mGoogleApiClient;
 
@@ -74,6 +83,8 @@ public class SensorLogActivity extends AppCompatActivity {
 
         mLogStartButton = (Button)findViewById(R.id.log_start_button);
         mLogStopButton = (Button)findViewById(R.id.log_stop_button);
+        mTimer = (TextView)findViewById(R.id.log_timer);
+        mChronometer = (Chronometer)findViewById(R.id.log_stopwatch);
         mLogTime = (EditText)findViewById(R.id.log_time_minutes);
         mFileList = (ListView)findViewById(R.id.file_list);
 
@@ -89,6 +100,7 @@ public class SensorLogActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        mGoogleApiClient.connect();
     }
 
     @Override
@@ -137,7 +149,8 @@ public class SensorLogActivity extends AppCompatActivity {
                             // Send settings and start logging on watch
                             sendSettingsAndStart();
 
-                            // Start service on phone
+                            // Display timer/stopwatch and start service on phone
+                            displayTimer();
                             startService(i);
                         }
                     }
@@ -147,6 +160,7 @@ public class SensorLogActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 mLogStopButton.setEnabled(false);
+                mChronometer.stop();
                 sendMessage(STOP);
 
                 Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
@@ -276,6 +290,41 @@ public class SensorLogActivity extends AppCompatActivity {
         return watchSensorCodes;
     }
 
+    private void displayTimer() {
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (timedMode) {
+                    mChronometer.setVisibility(View.GONE);
+                    mTimer.setVisibility(View.VISIBLE);
+                    final long milliseconds = minutes * 60 * 1000;
+                    long ms = 1000L;
+                    new CountDownTimer(milliseconds, ms) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+                            String time = String.format("%02d:%02d",
+                                    TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished),
+                                    TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) % 60);
+                            mTimer.setText(time);
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            mTimer.setText(getResources().getString(R.string.log_timer_end));
+                        }
+                    }.start();
+                }
+                else {
+                    mTimer.setVisibility(View.GONE);
+                    mChronometer.setVisibility(View.VISIBLE);
+                    mChronometer.setBase(SystemClock.elapsedRealtime());
+                    mChronometer.start();
+                }
+            }
+        }, logDelay);
+
+    }
     /**
      * Set UI to corresponding timer mode.
      * Timer: EditText to set time and start button.
