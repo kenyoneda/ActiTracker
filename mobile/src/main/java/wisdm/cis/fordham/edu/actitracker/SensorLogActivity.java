@@ -62,6 +62,7 @@ public class SensorLogActivity extends AppCompatActivity {
     
     private Button mLogStartButton;
     private Button mLogStopButton;
+    private Button mFileListButton;
     private TextView mTimer;
     private Chronometer mChronometer;
     private EditText mLogTime;
@@ -83,6 +84,7 @@ public class SensorLogActivity extends AppCompatActivity {
 
         mLogStartButton = (Button)findViewById(R.id.log_start_button);
         mLogStopButton = (Button)findViewById(R.id.log_stop_button);
+        mFileListButton = (Button)findViewById(R.id.file_list_button);
         mTimer = (TextView)findViewById(R.id.log_timer);
         mChronometer = (Chronometer)findViewById(R.id.log_stopwatch);
         mLogTime = (EditText)findViewById(R.id.log_time_minutes);
@@ -101,12 +103,6 @@ public class SensorLogActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         mGoogleApiClient.connect();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        showFileList();
     }
 
     @Override
@@ -165,6 +161,13 @@ public class SensorLogActivity extends AppCompatActivity {
 
                 Intent i = new Intent(SensorLogActivity.this, PhoneSensorLogService.class);
                 stopService(i);
+            }
+        });
+
+        mFileListButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showFileList();
             }
         });
     }

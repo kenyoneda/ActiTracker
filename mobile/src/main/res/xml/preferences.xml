@@ -7,4 +7,12 @@
         android:entryValues="@array/pref_samplingRate_values"
         android:defaultValue="@string/pref_samplingRate_default">
     </ListPreference>
+
+    <ListPreference
+        android:key="pref_dateTimeFormat"
+        android:title="@string/pref_dateTimeFormat"
+        android:entries="@array/pref_dateTimeFormat_values"
+        android:entryValues="@array/pref_dateTimeFormat_values"
+        android:defaultValue="@string/pref_dateTimeFormat_default">
+    </ListPreference>
 </PreferenceScreen>

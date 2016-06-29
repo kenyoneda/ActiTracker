@@ -192,7 +192,7 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
     private void writeFiles() {
         File directory = SensorFileSaver.getDirectory(this, username, activityName);
         for (int i = 0; i < mRecords.size(); i++) {
-            File file = SensorFileSaver.createFile(directory, username, activityName,
+            File file = SensorFileSaver.createFile(this, directory, username, activityName,
                     mSensors.get(i).getName().trim().toLowerCase().replace(" ", "_"));
             SensorFileSaver.writeFile(file, mRecords.get(i));
         }

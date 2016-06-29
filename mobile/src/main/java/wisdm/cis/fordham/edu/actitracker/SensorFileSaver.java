@@ -1,6 +1,8 @@
 package wisdm.cis.fordham.edu.actitracker;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.io.BufferedWriter;
@@ -17,6 +19,7 @@ import java.util.Calendar;
 public final class SensorFileSaver {
 
     private static final String TAG = "SensorFileSaver";
+    private static final String PREF_DATE_TIME_FORMAT = "pref_dateTimeFormat";
 
     private SensorFileSaver() {}
 
@@ -35,11 +38,10 @@ public final class SensorFileSaver {
     }
 
     // Make file in directory with name device_sensor_username_activityName_date_time.txt
-    public static File createFile(File directory, String username, String activityName,
+    public static File createFile(Context context, File directory, String username, String activityName,
                                   String sensorName){
 
-        String dateAndTime = new SimpleDateFormat("yyyyMMdd_HHmm")
-                .format(Calendar.getInstance().getTime());
+        String dateAndTime = getDateTimeFormat(context).format(Calendar.getInstance().getTime());
         return new File(directory, sensorName + "_" + username + "_" + activityName + "_" +
                 dateAndTime + ".txt");
     }
@@ -63,5 +65,14 @@ public final class SensorFileSaver {
             e.printStackTrace();
             Log.e(TAG, "Error writing files!");
         }
+    }
+
+    // Get date and time format from settings
+    private static SimpleDateFormat getDateTimeFormat(Context context) {
+        String defaultFormat = "yyyyMMdd_HHmm";
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String format = sharedPreferences.getString(PREF_DATE_TIME_FORMAT, defaultFormat);
+
+        return new SimpleDateFormat(format);
     }
 }

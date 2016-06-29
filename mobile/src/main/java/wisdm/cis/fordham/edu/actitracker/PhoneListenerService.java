@@ -100,7 +100,7 @@ public class PhoneListenerService extends WearableListenerService {
     private void writeFile(ArrayList<SensorRecord> record, String username, String activityName,
                            String sensorName) {
         File directory = SensorFileSaver.getDirectory(this, username, activityName);
-        File file = SensorFileSaver.createFile(directory, username, activityName, sensorName);
+        File file = SensorFileSaver.createFile(this, directory, username, activityName, sensorName);
         SensorFileSaver.writeFile(file, record);
     }
 

@@ -61,19 +61,33 @@
         android:layout_height="wrap_content"
         android:visibility="invisible"/>
 
-    <Button
-        android:id="@+id/log_start_button"
-        android:text="@string/log_start"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="invisible"/>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <Button
+            android:id="@+id/log_start_button"
+            android:text="@string/log_start"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="invisible"/>
 
-    <Button
-        android:id="@+id/log_stop_button"
-        android:text="@string/log_stop"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="invisible"/>
+        <Button
+            android:id="@+id/log_stop_button"
+            android:text="@string/log_stop"
+            android:layout_below="@+id/log_start_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="invisible"/>
+
+        <Button
+            android:id="@+id/file_list_button"
+            android:text="@string/file_list_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            />
+    </RelativeLayout>
+
 
     <ListView
         android:id="@+id/file_list"
