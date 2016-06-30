@@ -268,6 +268,9 @@ public class SensorLogActivity extends AppCompatActivity {
                 putDataMapRequest.getDataMap().putIntegerArrayList(WATCH_SENSOR_CODES, watchSensorCodes);
                 putDataMapRequest.getDataMap().putLong(TIMESTAMP, System.currentTimeMillis());
 
+                // Flag this data item for urgent transport
+                putDataMapRequest.setUrgent();
+
                 PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
                 PendingResult<DataApi.DataItemResult> pendingResult =
                         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest);
@@ -287,6 +290,12 @@ public class SensorLogActivity extends AppCompatActivity {
         Set<String> defaultSensors = new HashSet<String>(Arrays.asList("1", "4"));
         List<String> stringList = new ArrayList<String>(sharedPreferences.getStringSet(PREF_SENSOR_LIST_WEAR, defaultSensors));
         ArrayList<Integer> watchSensorCodes = new ArrayList<Integer>();
+
+        // Weird bug where default sensors are not referenced
+        if (stringList.isEmpty()) {
+            stringList = new ArrayList<String>(defaultSensors);
+        }
+
         for (String s : stringList) {
             watchSensorCodes.add(Integer.valueOf(s));
         }

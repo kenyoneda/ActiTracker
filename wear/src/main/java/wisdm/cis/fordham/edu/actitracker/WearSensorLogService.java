@@ -116,8 +116,14 @@ public class WearSensorLogService extends Service implements SensorEventListener
         // Register sensor listener after delay. Compensate for comm delay between phone and watch.
         Log.d(TAG, "Before start: " + System.currentTimeMillis());
         logDelay -= System.currentTimeMillis() - phoneToWatchDelay;
+
+        // If the time between phone isn't synchronized well..
         if (logDelay < 0L) {
             logDelay = 0L;
+        }
+
+        if (logDelay > 5000L) {
+            logDelay = 4800L;
         }
 
         exec.schedule(new Runnable() {
@@ -208,6 +214,10 @@ public class WearSensorLogService extends Service implements SensorEventListener
         dataMap.getDataMap().putString(USERNAME, username);
         dataMap.getDataMap().putString(ACTIVITY_NAME, activityName);
         PutDataRequest request = dataMap.asPutDataRequest();
+
+        // Flag this data item for urgent transport
+        request.setUrgent();
+
         Wearable.DataApi.putDataItem(mGoogleApiClient, request);
     }
 

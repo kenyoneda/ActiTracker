@@ -158,9 +158,15 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
 
         List<String> stringList = new ArrayList<String>(sharedPreferences.getStringSet(PREF_SENSOR_LIST_PHONE, defaultSensors));
 
+        // Weird bug where default sensors are not referenced
+        if (stringList.isEmpty()) {
+            stringList = new ArrayList<String>(defaultSensors);
+        }
+
         for (String s : stringList) {
             if (StringUtils.isNumeric(s)) {
                 mSensorCodes.add(Integer.valueOf(s));
+                Log.d(TAG, "code added: " + s);
             }
         }
     }

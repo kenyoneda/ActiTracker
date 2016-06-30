@@ -78,6 +78,10 @@ public class WearListenerService extends WearableListenerService {
             putDataMapRequest.getDataMap().putStringArrayList(SENSOR_LIST_STRING, sensorListString);
             putDataMapRequest.getDataMap().putIntegerArrayList(SENSOR_CODES, sensorCodes);
             PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
+
+            // Flag this data item for urgent transport
+            putDataRequest.setUrgent();
+
             mGoogleApiClient = new GoogleApiClient.Builder(this)
                     .addApi(Wearable.API)
                     .build();
