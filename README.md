@@ -5,6 +5,7 @@ An Android application for logging sensor data from a smartwatch and smartphone,
 *Note: There is a 5 second delay before the application starts collecting data. This is to allow for the researcher to place the devices in the necessary position.*
 
 ######To pull files (all data is stored on the phone):
+Connect phone via USB to computer. You will need adb (Android Debug Bridge) installed.
 
 ```
 adb backup -f example.ab  wisdm.cis.fordham.edu.actitracker
