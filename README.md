@@ -34,3 +34,5 @@ and the following settings are set on the watch:
 * `DISABLE` stay awake when charging (Settings -> Developer Options)
 
 Please report issues to GitHub or email comments and suggestions to kyoneda at fordham.edu
+
+This application is licensed under the MIT license.
