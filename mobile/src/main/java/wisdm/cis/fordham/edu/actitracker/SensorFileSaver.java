@@ -2,6 +2,7 @@ package wisdm.cis.fordham.edu.actitracker;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
@@ -25,8 +26,11 @@ public final class SensorFileSaver {
 
     // Make directory with path /User/Activity
     public static File getDirectory(Context context, String username, String activityName) {
-        File directory = new File(context.getFilesDir() + File.separator + username +
-                File.separator + activityName);
+        File directory = new File(
+                Environment.getExternalStorageDirectory()
+                        + File.separator + context.getResources().getString(R.string.app_name)
+                        + File.separator + username
+                        + File.separator + activityName);
         if (!directory.isDirectory()) {
             Log.d(TAG, "Creating directory with path: " + directory.getPath());
             directory.mkdirs();
@@ -42,8 +46,9 @@ public final class SensorFileSaver {
                                   String sensorName){
 
         String dateAndTime = getDateTimeFormat(context).format(Calendar.getInstance().getTime());
-        return new File(directory, sensorName + "_" + username + "_" + activityName + "_" +
+        File file = new File(directory, sensorName + "_" + username + "_" + activityName + "_" +
                 dateAndTime + ".txt");
+        return file;
     }
 
     // Write data to file
@@ -69,7 +74,7 @@ public final class SensorFileSaver {
 
     // Get date and time format from settings
     private static SimpleDateFormat getDateTimeFormat(Context context) {
-        String defaultFormat = "yyyyMMdd_HHmm";
+        String defaultFormat = context.getResources().getString(R.string.pref_dateTimeFormat_default);
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         String format = sharedPreferences.getString(PREF_DATE_TIME_FORMAT, defaultFormat);
 
