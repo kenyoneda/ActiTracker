@@ -250,7 +250,7 @@ public class WearSensorLogService extends Service implements SensorEventListener
     @Override
     public void onSensorChanged(SensorEvent event) {
         int index = mSensorCodes.indexOf(event.sensor.getType());
-        mRecords.get(index).add(new SensorRecord(event.timestamp, event.values));
+        mRecords.get(index).add(new SensorRecord(event.timestamp, event.values.clone()));
     }
 
     @Override

@@ -2,6 +2,7 @@ package wisdm.cis.fordham.edu.actitracker;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.media.MediaScannerConnection;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -52,7 +53,7 @@ public final class SensorFileSaver {
     }
 
     // Write data to file
-    public static void writeFile(File fileName, ArrayList<SensorRecord> data) {
+    public static void writeFile(Context context, File fileName, ArrayList<SensorRecord> data) {
         Log.d(TAG, "Writing file. Name: " + fileName.getPath());
         Log.d(TAG, "Lines: " + data.size());
         try {
@@ -70,6 +71,9 @@ public final class SensorFileSaver {
             e.printStackTrace();
             Log.e(TAG, "Error writing files!");
         }
+
+        String[] path = {fileName.getAbsolutePath()};
+        MediaScannerConnection.scanFile(context, path, null, null);
     }
 
     // Get date and time format from settings

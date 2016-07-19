@@ -199,14 +199,14 @@ public class PhoneSensorLogService extends Service implements SensorEventListene
         for (int i = 0; i < mRecords.size(); i++) {
             File file = SensorFileSaver.createFile(this, directory, username, activityName,
                     mSensors.get(i).getName().trim().toLowerCase().replace(" ", "_"));
-            SensorFileSaver.writeFile(file, mRecords.get(i));
+            SensorFileSaver.writeFile(this, file, mRecords.get(i));
         }
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
         int index = mSensorCodes.indexOf(event.sensor.getType());
-        mRecords.get(index).add(new SensorRecord(event.timestamp, event.values));
+        mRecords.get(index).add(new SensorRecord(event.timestamp, event.values.clone()));
     }
 
     @Override
